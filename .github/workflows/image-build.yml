@@ -1,4 +1,4 @@
-name: Build and Push Podman Image
+aname: Build and Push Podman Image
 
 on:
   push:
@@ -14,22 +14,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Log in to the Container registry
-        # Use an existing action to handle authentication securely
         uses: redhat-actions/podman-login@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # GITHUB_TOKEN is a built-in secret
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build image with Podman
-        # Use a run command to execute the podman build command
         run: |
-          podman build -t ghcr.io/${{ github.repository }}:latest .
-          podman build -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
+          podman build \
+            -t ghcr.io/${{ github.repository }}:latest \
+            -t ghcr.io/${{ github.repository }}:${{ github.sha }} \
+            .
 
       - name: Push image to GitHub Container Registry
-        # Use an existing action to handle pushing the built image
         uses: redhat-actions/push-to-registry@v2
         with:
-          image: ghcr.io/${{ github.repository }}
-          tags: latest,${{ github.sha }}
+          image: ${{ github.repository }}
+          tags: latest ${{ github.sha }}
+          registry: ghcr.io

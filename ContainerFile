@@ -36,8 +36,8 @@ COPY index.html /usr/share/nginx/html/index.html
 RUN systemctl enable nginx
 
 # Autologin on tty1 for kiosk user (no manual login required)
-RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
-    cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'EOF'
+RUN mkdir -p /etc/systemd/system/getty@tty1.service.d
+RUN cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'EOF'
 [Service]
 ExecStart=
 ExecStart=-/usr/sbin/agetty --autologin kiosk --noclear %I $TERM
