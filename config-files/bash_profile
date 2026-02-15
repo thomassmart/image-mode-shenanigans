@@ -1,0 +1,6 @@
+if [ -z "${DISPLAY:-}" ] && [ "${XDG_VTNR:-}" = "1" ]; then
+  if [ ! -f /tmp/.kiosk_started ]; then
+    touch /tmp/.kiosk_started
+    startx >/home/kiosk/startx.log 2>&1 || true
+  fi
+fi
