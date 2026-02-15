@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Self Checkout Demo</title>
+<style>
+    body {
+        margin: 0;
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: linear-gradient(135deg, #003366, #0077cc);
+        color: white;
+        display: flex;
+        height: 100vh;
+    }
+
+    .container {
+        display: flex;
+        width: 100%;
+    }
+
+    .items {
+        flex: 2;
+        background: rgba(0,0,0,0.2);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .items h2 {
+        margin-top: 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+    }
+
+    th {
+        background: rgba(0,0,0,0.3);
+    }
+
+    tr:nth-child(even) {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .summary {
+        flex: 1;
+        background: rgba(0,0,0,0.35);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .total-box {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .total-box h1 {
+        font-size: 48px;
+        margin: 10px 0;
+    }
+
+    .buttons {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .btn {
+        padding: 18px;
+        font-size: 18px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.2s;
+    }
+
+    .btn-pay {
+        background: #00b0ff;
+        color: #001a33;
+    }
+
+    .btn-pay:hover {
+        background: #0091ea;
+    }
+
+    .btn-alt {
+        background: #1976d2;
+        color: white;
+    }
+
+    .btn-alt:hover {
+        background: #1565c0;
+    }
+
+    .btn-cancel {
+        background: #e53935;
+        color: white;
+    }
+
+    .btn-cancel:hover {
+        background: #d32f2f;
+    }
+
+    .header {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .scan-panel {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    /* Removed select/input styling as quantity input is gone */
+
+    .product-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .btn-product {
+        background: rgba(255,255,255,0.12);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.2);
+        padding: 14px;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .btn-product:hover {
+        background: rgba(255,255,255,0.25);
+    }
+
+    .btn-scan {
+        background: rgba(255,255,255,0.15);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.25);
+    }
+
+    .btn-scan:hover {
+        background: rgba(255,255,255,0.25);
+    }
+
+    .table-actions {
+        width: 1%;
+        white-space: nowrap;
+        text-align: right;
+    }
+
+    .icon-btn {
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.18);
+        color: white;
+        border-radius: 10px;
+        padding: 8px 10px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.2s;
+    }
+
+    .icon-btn:hover {
+        background: rgba(255,255,255,0.22);
+    }
+
+    .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.7);
+        border: 1px solid rgba(255,255,255,0.18);
+        padding: 12px 14px;
+        border-radius: 12px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s;
+        font-size: 14px;
+        z-index: 50;
+    }
+
+    .toast.show {
+        opacity: 1;
+    }
+
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+    .modal {
+        width: min(520px, calc(100% - 40px));
+        background: rgba(0,0,0,0.78);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    }
+
+    .modal h3 {
+        margin: 0 0 10px 0;
+        font-size: 20px;
+    }
+
+    .modal p {
+        margin: 8px 0;
+        opacity: 0.95;
+    }
+
+    .modal .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 14px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .modal .btn {
+        padding: 12px 14px;
+        font-size: 16px;
+        border-radius: 12px;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <div class="items">
+        <div class="header">Scan Items</div>
+
+        <div class="scan-panel" aria-label="Scan panel">
+            <div class="product-buttons">
+                <button class="btn-product" data-key="apples">🍎 Organic Apples</button>
+                <button class="btn-product" data-key="bananas">🍌 Bananas</button>
+                <button class="btn-product" data-key="milk">🥛 Milk 2L</button>
+                <button class="btn-product" data-key="eggs">🥚 Free Range Eggs (12)</button>
+                <button class="btn-product" data-key="bread">🍞 Fresh Bread</button>
+                <button class="btn-product" data-key="choc">🍫 Chocolate Bar</button>
+                <button class="btn-product" data-key="coffee">☕ Ground Coffee 250g</button>
+                <button class="btn-product" data-key="chips">🥔 Potato Chips</button>
+                <button class="btn-product" data-key="cheese">🧀 Tasty Cheese 500g</button>
+                <button class="btn-product" data-key="berries">🫐 Mixed Berries 300g</button>
+                <button class="btn-product" data-key="yogurt">🥣 Greek Yogurt 1kg</button>
+                <button class="btn-product" data-key="chicken">🍗 Chicken Breast 1kg</button>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th class="table-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="cartBody"></tbody>
+        </table>
+    </div>
+
+    <div class="summary">
+        <div>
+            <div class="header">Total</div>
+            <div class="total-box">
+                <h1 id="totalAmount">$0.00</h1>
+                <p><span id="itemCount">0</span> items</p>
+            </div>
+
+            <div class="buttons">
+                <button id="payNowBtn" class="btn btn-pay" type="button">Pay Now</button>
+                <button id="cardBtn" class="btn btn-alt" type="button">Card Payment</button>
+                <button id="walletBtn" class="btn btn-alt" type="button">Mobile Wallet</button>
+                <button id="cancelBtn" class="btn btn-cancel" type="button">Cancel Transaction</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            Touch screen to continue<br>
+            Demo Self-Checkout Interface
+        </div>
+    </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal">
+        <h3 id="modalTitle">Payment</h3>
+        <p id="modalBody">…</p>
+        <div class="modal-actions">
+            <button id="modalClose" class="btn btn-alt" type="button">Close</button>
+            <button id="modalPrimary" class="btn btn-pay" type="button">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(() => {
+    const products = {
+        apples: { name: 'Organic Apples', price: 3.20 },
+        milk: { name: 'Milk 2L', price: 2.80 },
+        choc: { name: 'Chocolate Bar', price: 2.00 }, // per bar
+        bread: { name: 'Fresh Bread', price: 3.50 },
+        bananas: { name: 'Bananas', price: 1.30 },
+        eggs: { name: 'Free Range Eggs (12)', price: 6.40 },
+        coffee: { name: 'Ground Coffee 250g', price: 7.90 },
+        chips: { name: 'Potato Chips', price: 3.10 },
+        cheese: { name: 'Tasty Cheese 500g', price: 8.50 },
+        berries: { name: 'Mixed Berries 300g', price: 6.90 },
+        yogurt: { name: 'Greek Yogurt 1kg', price: 7.20 },
+        chicken: { name: 'Chicken Breast 1kg', price: 12.90 }
+    };
+
+    /** @type {Map<string, {key:string, name:string, price:number, qty:number}>} */
+    const cart = new Map();
+
+    const $ = (id) => document.getElementById(id);
+
+    const cartBody = $('cartBody');
+    const totalAmountEl = $('totalAmount');
+    const itemCountEl = $('itemCount');
+
+
+    const payNowBtn = $('payNowBtn');
+    const cardBtn = $('cardBtn');
+    const walletBtn = $('walletBtn');
+    const cancelBtn = $('cancelBtn');
+
+    const toast = $('toast');
+
+    const modalBackdrop = $('modalBackdrop');
+    const modalTitle = $('modalTitle');
+    const modalBody = $('modalBody');
+    const modalClose = $('modalClose');
+    const modalPrimary = $('modalPrimary');
+
+    let modalPrimaryHandler = null;
+
+    // AUD display while keeping formatting consistent (but no currency symbol surprises for demo)
+    function moneyAUD(n) {
+        return '$' + n.toFixed(2);
+    }
+
+    function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        window.clearTimeout(showToast._t);
+        showToast._t = window.setTimeout(() => toast.classList.remove('show'), 1600);
+    }
+
+    function computeTotals() {
+        let total = 0;
+        let items = 0;
+        for (const line of cart.values()) {
+            total += line.price * line.qty;
+            items += line.qty;
+        }
+        return { total, items };
+    }
+
+    function openModal(title, body, primaryText, onPrimary) {
+        modalTitle.textContent = title;
+        modalBody.textContent = body;
+        modalPrimary.textContent = primaryText || 'OK';
+        modalPrimary.style.display = onPrimary ? 'inline-block' : 'none';
+
+        if (modalPrimaryHandler) {
+            modalPrimary.removeEventListener('click', modalPrimaryHandler);
+            modalPrimaryHandler = null;
+        }
+        if (onPrimary) {
+            modalPrimaryHandler = () => onPrimary();
+            modalPrimary.addEventListener('click', modalPrimaryHandler);
+        }
+
+        modalBackdrop.style.display = 'flex';
+        modalBackdrop.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeModal() {
+        modalBackdrop.style.display = 'none';
+        modalBackdrop.setAttribute('aria-hidden', 'true');
+        if (modalPrimaryHandler) {
+            modalPrimary.removeEventListener('click', modalPrimaryHandler);
+            modalPrimaryHandler = null;
+        }
+    }
+
+    function renderCart() {
+        cartBody.innerHTML = '';
+
+        for (const line of cart.values()) {
+            const tr = document.createElement('tr');
+
+            const tdName = document.createElement('td');
+            tdName.textContent = line.name;
+
+            const tdQty = document.createElement('td');
+            tdQty.textContent = String(line.qty);
+
+            const tdPrice = document.createElement('td');
+            tdPrice.textContent = moneyAUD(line.price * line.qty);
+
+            const tdActions = document.createElement('td');
+            tdActions.className = 'table-actions';
+
+            const minusBtn = document.createElement('button');
+            minusBtn.className = 'icon-btn';
+            minusBtn.type = 'button';
+            minusBtn.textContent = '−';
+            minusBtn.title = 'Decrease quantity';
+            minusBtn.addEventListener('click', () => adjustQty(line.key, -1));
+
+            const plusBtn = document.createElement('button');
+            plusBtn.className = 'icon-btn';
+            plusBtn.type = 'button';
+            plusBtn.textContent = '+';
+            plusBtn.title = 'Increase quantity';
+            plusBtn.style.marginLeft = '8px';
+            plusBtn.addEventListener('click', () => adjustQty(line.key, +1));
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'icon-btn';
+            removeBtn.type = 'button';
+            removeBtn.textContent = 'Remove';
+            removeBtn.title = 'Remove item';
+            removeBtn.style.marginLeft = '8px';
+            removeBtn.addEventListener('click', () => removeLine(line.key));
+
+            tdActions.appendChild(minusBtn);
+            tdActions.appendChild(plusBtn);
+            tdActions.appendChild(removeBtn);
+
+            tr.appendChild(tdName);
+            tr.appendChild(tdQty);
+            tr.appendChild(tdPrice);
+            tr.appendChild(tdActions);
+
+            cartBody.appendChild(tr);
+        }
+
+        const { total, items } = computeTotals();
+        totalAmountEl.textContent = moneyAUD(total);
+        itemCountEl.textContent = String(items);
+
+        // Disable pay buttons when empty
+        const disabled = cart.size === 0;
+        payNowBtn.disabled = disabled;
+        cardBtn.disabled = disabled;
+        walletBtn.disabled = disabled;
+        payNowBtn.style.opacity = disabled ? '0.6' : '1';
+        cardBtn.style.opacity = disabled ? '0.6' : '1';
+        walletBtn.style.opacity = disabled ? '0.6' : '1';
+
+        // Keep cancel enabled (it just clears)
+    }
+
+    function addToCart(key, qty) {
+        const p = products[key];
+        if (!p) return;
+        const existing = cart.get(key);
+        if (existing) {
+            existing.qty += qty;
+        } else {
+            cart.set(key, { key, name: p.name, price: p.price, qty });
+        }
+        showToast(`Scanned: ${p.name} x${qty}`);
+        renderCart();
+    }
+
+    function adjustQty(key, delta) {
+        const line = cart.get(key);
+        if (!line) return;
+        line.qty += delta;
+        if (line.qty <= 0) {
+            cart.delete(key);
+            showToast('Item removed');
+        } else {
+            showToast('Quantity updated');
+        }
+        renderCart();
+    }
+
+    function removeLine(key) {
+        if (cart.has(key)) {
+            cart.delete(key);
+            showToast('Item removed');
+            renderCart();
+        }
+    }
+
+    function clearCart() {
+        cart.clear();
+        renderCart();
+    }
+
+
+    function payFlow(methodLabel) {
+        const { total, items } = computeTotals();
+        if (items === 0) {
+            showToast('Scan something first');
+            return;
+        }
+
+        openModal(
+            `${methodLabel}`,
+            `You are about to pay ${moneyAUD(total)} for ${items} item(s).`,
+            'Confirm payment',
+            () => {
+                closeModal();
+                showToast('Payment approved (demo)');
+                // Simulate receipt by clearing cart
+                clearCart();
+            }
+        );
+    }
+
+    // Wire up events
+    const productButtons = document.querySelectorAll('.btn-product');
+
+    productButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const key = btn.getAttribute('data-key');
+            addToCart(key, 1);
+        });
+    });
+
+
+    payNowBtn.addEventListener('click', () => payFlow('Pay Now'));
+    cardBtn.addEventListener('click', () => payFlow('Card Payment'));
+    walletBtn.addEventListener('click', () => payFlow('Mobile Wallet'));
+
+    cancelBtn.addEventListener('click', () => {
+        if (cart.size === 0) {
+            showToast('Nothing to cancel');
+            return;
+        }
+        openModal('Cancel transaction', 'This will cancel the transaction and clear the cart.', 'Cancel transaction', () => {
+            closeModal();
+            clearCart();
+            showToast('Transaction cancelled');
+        });
+    });
+
+    modalClose.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', (e) => {
+        if (e.target === modalBackdrop) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+
+    // Initial state
+    renderCart();
+})();
+</script>
+</body>
+</html>

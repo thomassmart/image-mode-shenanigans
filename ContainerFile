@@ -1,0 +1,110 @@
+# Bootable Fedora base image
+FROM quay.io/fedora/fedora-bootc:latest
+
+# Install nginx + minimal X11 stack + Chromium + lightweight WM
+RUN dnf -y install \
+      nginx \
+      chromium \
+      xorg-x11-server-Xorg \
+      xorg-x11-xinit \
+      xorg-x11-xauth \
+      xorg-x11-drv-libinput \
+      xset \
+      xterm \
+      mesa-dri-drivers \
+      mesa-libEGL \
+      mesa-libGL \
+      dbus-x11 \
+      curl \
+      pciutils \
+    && dnf clean all
+
+# OPTIONAL: try to install extra Xorg video drivers if they exist (won't fail build)
+RUN dnf -y --setopt=skip_missing_names_on_install=True install \
+      xorg-x11-drv-vesa \
+      xorg-x11-drv-qxl \
+      matchbox-window-manager \
+    && dnf clean all || true
+
+# Create a dedicated kiosk user
+RUN useradd -m -s /bin/bash kiosk
+
+# Copy website content
+COPY index.html /usr/share/nginx/html/index.html
+
+# Enable nginx to start on boot
+RUN systemctl enable nginx
+
+# Autologin on tty1 for kiosk user (no manual login required)
+RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
+    cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'EOF'
+[Service]
+ExecStart=
+ExecStart=-/usr/sbin/agetty --autologin kiosk --noclear %I $TERM
+Type=idle
+EOF
+
+# Start X once per boot; if it fails, you stay at a shell prompt (no endless loop)
+RUN cat > /home/kiosk/.bash_profile <<'EOF'
+if [ -z "${DISPLAY:-}" ] && [ "${XDG_VTNR:-}" = "1" ]; then
+  if [ ! -f /tmp/.kiosk_started ]; then
+    touch /tmp/.kiosk_started
+    startx >/home/kiosk/startx.log 2>&1 || true
+  fi
+fi
+EOF
+
+# X session: openbox + chromium kiosk
+RUN cat > /home/kiosk/.xinitrc <<'EOF'
+#!/usr/bin/env bash
+set -e
+
+exec >>/home/kiosk/kiosk-session.log 2>&1
+
+xset s off || true
+xset -dpms || true
+xset s noblank || true
+
+for i in {1..30}; do
+  if curl -fsS http://127.0.0.1/ >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+URL="http://127.0.0.1/"
+
+# Start a very small window manager (helps Chromium map/fullscreen reliably)
+# If it's not installed for some reason, we continue anyway.
+if command -v matchbox-window-manager >/dev/null 2>&1; then
+  matchbox-window-manager -use_titlebar no &
+fi
+
+# If Chromium fails, you can switch to a terminal inside X with Alt+F2 in xterm
+xterm -geometry 120x40+20+20 -e 'echo "Kiosk debug terminal"; echo "Logs: /home/kiosk/kiosk-session.log"; echo "Press Ctrl+C to close"; bash' &
+
+while true; do
+  dbus-run-session chromium-browser \
+    --kiosk \
+    --user-data-dir=/home/kiosk/.config/chromium-kiosk \
+    --enable-logging=stderr \
+    --v=1 \
+    --no-first-run \
+    --disable-translate \
+    --disable-infobars \
+    --disable-dev-shm-usage \
+    --no-sandbox \
+    --disable-gpu \
+    --disable-gpu-compositing \
+    --use-gl=swiftshader \
+    --disable-features=Vulkan \
+    --check-for-update-interval=31536000 \
+    "$URL" || true
+  sleep 1
+done
+EOF
+
+RUN chmod +x /home/kiosk/.xinitrc && \
+    chown -R kiosk:kiosk /home/kiosk
+
+EXPOSE 80
