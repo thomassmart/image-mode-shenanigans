@@ -1,30 +1,16 @@
 # Bootable Fedora base image
 FROM quay.io/fedora/fedora-bootc:latest
 
-# Install nginx + minimal X11 stack + Chromium + lightweight WM
-RUN dnf -y install \
+# Install kiosk runtime packages and GUI group
+RUN dnf -y groupinstall "@base-x" \
+    && dnf -y install \
       nginx \
       chromium \
-      xorg-x11-server-Xorg \
-      xorg-x11-xinit \
-      xorg-x11-xauth \
-      xorg-x11-drv-libinput \
-      xset \
-      xterm \
-      mesa-dri-drivers \
-      mesa-libEGL \
-      mesa-libGL \
       dbus-x11 \
       curl \
+      matchbox-window-manager \
       pciutils \
     && dnf clean all
-
-# OPTIONAL: try to install extra Xorg video drivers if they exist (won't fail build)
-RUN dnf -y --setopt=skip_missing_names_on_install=True install \
-      xorg-x11-drv-vesa \
-      xorg-x11-drv-qxl \
-      matchbox-window-manager \
-    && dnf clean all || true
 
 # Create a dedicated kiosk user
 RUN useradd -m -s /bin/bash kiosk
