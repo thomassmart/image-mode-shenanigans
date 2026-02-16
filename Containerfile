@@ -1,8 +1,8 @@
 # Bootable Fedora base image
 FROM quay.io/fedora/fedora-bootc:latest
 
-# Install kiosk runtime packages and GUI group
-RUN dnf -y groupinstall "@base-x" \
+# Install kiosk runtime packages and GUI group (dnf5 syntax)
+RUN dnf -y group install base-x \
     && dnf -y install \
       nginx \
       chromium \
