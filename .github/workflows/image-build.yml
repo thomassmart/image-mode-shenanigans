@@ -67,6 +67,7 @@ jobs:
             -v /var/lib/containers/storage:/var/lib/containers/storage \
             quay.io/centos-bootc/bootc-image-builder:latest \
             --type anaconda-iso \
+            --rootfs xfs \
             "${IMAGE_REF}"
 
       - name: Upload bootc ISO artifacts
