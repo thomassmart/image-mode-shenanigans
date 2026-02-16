@@ -58,22 +58,20 @@ jobs:
       - name: Build bootc installer ISO
         run: |
           mkdir -p output
-          sudo podman pull ghcr.io/${{ github.repository }}:${{ github.sha }}
+          IMAGE_REF="ghcr.io/${{ github.repository }}:${{ github.sha }}"
+          sudo podman pull "${IMAGE_REF}"
           sudo podman run --rm --privileged \
             --pull=newer \
             --security-opt label=type:unconfined_t \
-            -v "${{ github.workspace }}/bootc/config.toml:/config.toml:ro" \
             -v "${{ github.workspace }}/output:/output" \
             -v /var/lib/containers/storage:/var/lib/containers/storage \
             quay.io/centos-bootc/bootc-image-builder:latest \
-            --type bootc-installer \
-            --rootfs xfs \
-            --config /config.toml \
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            --type anaconda-iso \
+            "${IMAGE_REF}"
 
       - name: Upload bootc ISO artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bootc-iso-${{ github.sha }}
-          path: output/bootc-installer/**
+          path: output/**
           if-no-files-found: error

@@ -12,6 +12,7 @@ GlobalArgs=--root=/home/kiosk/containers-vfs/storage
 GlobalArgs=--runroot=/tmp/containers-vfs/runroot
 GlobalArgs=--storage-driver=vfs
 SecurityLabelDisable=true
+PodmanArgs=--security-opt=label=disable
 Volume=/usr/share/kiosk-site:/usr/share/nginx/html:ro
 
 [Service]
