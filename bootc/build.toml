@@ -1,0 +1,13 @@
+# Automation inputs for bootc-image-builder jobs.
+# Keep this file in sync with your CI workflow inputs.
+
+[image]
+ref = "ghcr.io/thomassmart/image-mode-shenanigans:latest"
+
+[build]
+rootfs = "xfs"
+types = ["qcow2"]
+
+[paths]
+config = "bootc/config.toml"
+output_dir = "output"

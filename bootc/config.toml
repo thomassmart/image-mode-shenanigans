@@ -1,0 +1,11 @@
+# bootc-image-builder defaults for automated disk image builds.
+# This file can be mounted as /config.toml for explicit builds, and is also
+# embedded into the image at /usr/lib/bootc-image-builder/config.toml.
+
+[[customizations.filesystem]]
+mountpoint = "/"
+minsize = "30 GiB"
+
+[[customizations.filesystem]]
+mountpoint = "/boot"
+minsize = "5 GiB"

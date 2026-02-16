@@ -1,4 +1,4 @@
-name: Build and Push Podman Image
+name: Build, Push, and Build bootc ISO
 
 on:
   push:
@@ -8,6 +8,9 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout repository
@@ -33,3 +36,44 @@ jobs:
           image: ${{ github.repository }}
           tags: latest ${{ github.sha }}
           registry: ghcr.io
+
+  build-bootc-iso:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR for image pull
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build bootc installer ISO
+        run: |
+          mkdir -p output
+          sudo podman pull ghcr.io/${{ github.repository }}:${{ github.sha }}
+          sudo podman run --rm --privileged \
+            --pull=newer \
+            --security-opt label=type:unconfined_t \
+            -v "${{ github.workspace }}/bootc/config.toml:/config.toml:ro" \
+            -v "${{ github.workspace }}/output:/output" \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            quay.io/centos-bootc/bootc-image-builder:latest \
+            --type bootc-installer \
+            --rootfs xfs \
+            --config /config.toml \
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+      - name: Upload bootc ISO artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootc-iso-${{ github.sha }}
+          path: output/bootc-installer/**
+          if-no-files-found: error

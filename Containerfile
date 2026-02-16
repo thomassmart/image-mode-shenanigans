@@ -19,8 +19,9 @@ RUN dnf -y install @kde-desktop-environment \
 # Create a dedicated kiosk user
 RUN useradd -m -s /bin/bash kiosk
 
-# Copy website and quadlet config for podman-managed container
-RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd
+# Copy website, quadlet config, and embedded bootc-image-builder defaults
+RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder
+COPY bootc/config.toml /usr/lib/bootc-image-builder/config.toml
 COPY index.html /usr/share/kiosk-site/index.html
 COPY config-files/kiosk-nginx.container /etc/containers/systemd/kiosk-nginx.container
 
