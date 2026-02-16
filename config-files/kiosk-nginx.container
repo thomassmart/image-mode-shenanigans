@@ -1,0 +1,23 @@
+[Unit]
+Description=Kiosk NGINX container
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=quay.io/nginx/nginx-unprivileged
+Pull=missing
+ContainerName=kiosk-nginx
+Network=host
+GlobalArgs=--root=/home/kiosk/containers-vfs/storage
+GlobalArgs=--runroot=/tmp/containers-vfs/runroot
+GlobalArgs=--storage-driver=vfs
+SecurityLabelDisable=true
+Volume=/usr/share/kiosk-site:/usr/share/nginx/html:ro
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+ExecStartPre=/usr/bin/mkdir -p /home/kiosk/containers-vfs/storage /tmp/containers-vfs/runroot
+
+[Install]
+WantedBy=multi-user.target

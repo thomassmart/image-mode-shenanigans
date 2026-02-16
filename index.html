@@ -4,11 +4,34 @@
 <meta charset="UTF-8">
 <title>Self Checkout Demo</title>
 <style>
+    :root {
+        --bg-start: #2a0b49;
+        --bg-end: #5f1ca8;
+        --text-primary: #f7efff;
+        --panel-soft: rgba(24, 8, 43, 0.42);
+        --panel-strong: rgba(16, 6, 30, 0.56);
+        --surface: rgba(255, 255, 255, 0.09);
+        --surface-alt: rgba(255, 255, 255, 0.06);
+        --surface-hover: rgba(255, 255, 255, 0.2);
+        --border-soft: rgba(235, 220, 255, 0.22);
+        --btn-pay-bg: #d8b4fe;
+        --btn-pay-fg: #2b0a4c;
+        --btn-pay-hover: #c084fc;
+        --btn-alt-bg: #9333ea;
+        --btn-alt-hover: #7e22ce;
+        --btn-cancel-bg: #a21caf;
+        --btn-cancel-hover: #86198f;
+        --toast-bg: rgba(18, 8, 34, 0.84);
+        --modal-backdrop: rgba(12, 3, 22, 0.72);
+        --modal-bg: rgba(17, 7, 31, 0.86);
+        --shadow: rgba(8, 3, 16, 0.42);
+    }
+
     body {
         margin: 0;
         font-family: "Segoe UI", Arial, sans-serif;
-        background: linear-gradient(135deg, #003366, #0077cc);
-        color: white;
+        background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+        color: var(--text-primary);
         display: flex;
         height: 100vh;
     }
@@ -20,7 +43,7 @@
 
     .items {
         flex: 2;
-        background: rgba(0,0,0,0.2);
+        background: var(--panel-soft);
         padding: 20px;
         display: flex;
         flex-direction: column;
@@ -34,7 +57,7 @@
         width: 100%;
         border-collapse: collapse;
         margin-top: 15px;
-        background: rgba(255,255,255,0.05);
+        background: var(--surface-alt);
         border-radius: 8px;
         overflow: hidden;
     }
@@ -45,16 +68,16 @@
     }
 
     th {
-        background: rgba(0,0,0,0.3);
+        background: var(--panel-strong);
     }
 
     tr:nth-child(even) {
-        background: rgba(255,255,255,0.03);
+        background: rgba(255, 255, 255, 0.04);
     }
 
     .summary {
         flex: 1;
-        background: rgba(0,0,0,0.35);
+        background: var(--panel-strong);
         padding: 20px;
         display: flex;
         flex-direction: column;
@@ -89,30 +112,30 @@
     }
 
     .btn-pay {
-        background: #00b0ff;
-        color: #001a33;
+        background: var(--btn-pay-bg);
+        color: var(--btn-pay-fg);
     }
 
     .btn-pay:hover {
-        background: #ea00a8;
+        background: var(--btn-pay-hover);
     }
 
     .btn-alt {
-        background: #c00be0;
-        color: white;
+        background: var(--btn-alt-bg);
+        color: var(--text-primary);
     }
 
     .btn-alt:hover {
-        background: #1565c0;
+        background: var(--btn-alt-hover);
     }
 
     .btn-cancel {
-        background: #e53935;
-        color: white;
+        background: var(--btn-cancel-bg);
+        color: var(--text-primary);
     }
 
     .btn-cancel:hover {
-        background: #d32f2f;
+        background: var(--btn-cancel-hover);
     }
 
     .header {
@@ -140,9 +163,9 @@
     }
 
     .btn-product {
-        background: rgba(255,255,255,0.12);
-        color: white;
-        border: 1px solid rgba(255,255,255,0.2);
+        background: var(--surface);
+        color: var(--text-primary);
+        border: 1px solid var(--border-soft);
         padding: 14px;
         border-radius: 12px;
         font-size: 16px;
@@ -152,17 +175,17 @@
     }
 
     .btn-product:hover {
-        background: rgba(255,255,255,0.25);
+        background: var(--surface-hover);
     }
 
     .btn-scan {
-        background: rgba(255,255,255,0.15);
-        color: white;
-        border: 1px solid rgba(255,255,255,0.25);
+        background: var(--surface);
+        color: var(--text-primary);
+        border: 1px solid var(--border-soft);
     }
 
     .btn-scan:hover {
-        background: rgba(255,255,255,0.25);
+        background: var(--surface-hover);
     }
 
     .table-actions {
@@ -172,9 +195,9 @@
     }
 
     .icon-btn {
-        background: rgba(255,255,255,0.12);
-        border: 1px solid rgba(255,255,255,0.18);
-        color: white;
+        background: var(--surface);
+        border: 1px solid var(--border-soft);
+        color: var(--text-primary);
         border-radius: 10px;
         padding: 8px 10px;
         cursor: pointer;
@@ -183,7 +206,7 @@
     }
 
     .icon-btn:hover {
-        background: rgba(255,255,255,0.22);
+        background: var(--surface-hover);
     }
 
     .toast {
@@ -191,8 +214,8 @@
         bottom: 24px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0,0,0,0.7);
-        border: 1px solid rgba(255,255,255,0.18);
+        background: var(--toast-bg);
+        border: 1px solid var(--border-soft);
         padding: 12px 14px;
         border-radius: 12px;
         opacity: 0;
@@ -209,7 +232,7 @@
     .modal-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.6);
+        background: var(--modal-backdrop);
         display: none;
         align-items: center;
         justify-content: center;
@@ -218,11 +241,11 @@
 
     .modal {
         width: min(520px, calc(100% - 40px));
-        background: rgba(0,0,0,0.78);
-        border: 1px solid rgba(255,255,255,0.2);
+        background: var(--modal-bg);
+        border: 1px solid var(--border-soft);
         border-radius: 16px;
         padding: 18px;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+        box-shadow: 0 20px 50px var(--shadow);
     }
 
     .modal h3 {

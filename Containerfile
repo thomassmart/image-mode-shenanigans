@@ -1,25 +1,28 @@
 # Bootable Fedora base image
 FROM quay.io/fedora/fedora-bootc:latest
 
-# Install kiosk runtime packages and GUI group (dnf5 syntax)
-RUN dnf -y group install base-x \
+# Install QEMU guest agent for better integration with the host (optional but recommended)
+RUN dnf -y install qemu-guest-agent && \
+    dnf clean all && \
+    systemctl enable qemu-guest-agent
+
+# Install kiosk runtime packages and KDE desktop (dnf5 syntax)
+RUN dnf -y install @kde-desktop-environment \
     && dnf -y install \
-      nginx \
-      chromium \
+      podman \
+      firefox \
       dbus-x11 \
       curl \
-      matchbox-window-manager \
-      pciutils \
-    && dnf clean all
+    && dnf clean all \
+    && systemctl set-default graphical.target
 
 # Create a dedicated kiosk user
 RUN useradd -m -s /bin/bash kiosk
 
-# Copy website content
-COPY index.html /usr/share/nginx/html/index.html
-
-# Enable nginx to start on boot
-RUN systemctl enable nginx
+# Copy website and quadlet config for podman-managed container
+RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd
+COPY index.html /usr/share/kiosk-site/index.html
+COPY config-files/kiosk-nginx.container /etc/containers/systemd/kiosk-nginx.container
 
 # Autologin on tty1 for kiosk user (no manual login required)
 RUN mkdir -p /etc/systemd/system/getty@tty1.service.d
@@ -33,4 +36,4 @@ COPY config-files/xinitrc /home/kiosk/.xinitrc
 RUN chmod +x /home/kiosk/.xinitrc && \
     chown -R kiosk:kiosk /home/kiosk
 
-EXPOSE 80
+EXPOSE 8080
