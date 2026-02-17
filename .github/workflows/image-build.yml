@@ -56,16 +56,41 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build bootc installer ISO
+        env:
+          BREAK_GLASS_PASSWORD: ${{ secrets.BREAK_GLASS_PASSWORD }}
+          BREAK_GLASS_SSH_PUBLIC_KEY: ${{ secrets.BREAK_GLASS_SSH_PUBLIC_KEY }}
         run: |
+          set -euo pipefail
           mkdir -p output
+          test -n "$BREAK_GLASS_PASSWORD" || { echo "Missing required secret: BREAK_GLASS_PASSWORD"; exit 1; }
+          test -n "$BREAK_GLASS_SSH_PUBLIC_KEY" || { echo "Missing required secret: BREAK_GLASS_SSH_PUBLIC_KEY"; exit 1; }
+
           IMAGE_REF="ghcr.io/${{ github.repository }}:${{ github.sha }}"
+          CONFIG_PATH="${RUNNER_TEMP}/bootc-image-builder-config.toml"
+          ESCAPED_PASSWORD="${BREAK_GLASS_PASSWORD//\\/\\\\}"
+          ESCAPED_PASSWORD="${ESCAPED_PASSWORD//\"/\\\"}"
+          ESCAPED_KEY="${BREAK_GLASS_SSH_PUBLIC_KEY//\\/\\\\}"
+          ESCAPED_KEY="${ESCAPED_KEY//\"/\\\"}"
+
+          cp bootc/config.toml "${CONFIG_PATH}"
+          cat >> "${CONFIG_PATH}" <<EOF
+
+          [[customizations.user]]
+          name = "break-glass"
+          password = "${ESCAPED_PASSWORD}"
+          key = "${ESCAPED_KEY}"
+          groups = ["wheel"]
+          EOF
+
           sudo podman pull "${IMAGE_REF}"
           sudo podman run --rm --privileged \
             --pull=newer \
             --security-opt label=type:unconfined_t \
             -v "${{ github.workspace }}/output:/output" \
+            -v "${CONFIG_PATH}:/config.toml:ro" \
             -v /var/lib/containers/storage:/var/lib/containers/storage \
             quay.io/centos-bootc/bootc-image-builder:latest \
+            --config /config.toml \
             --type anaconda-iso \
             --rootfs xfs \
             "${IMAGE_REF}"

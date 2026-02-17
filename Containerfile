@@ -14,27 +14,25 @@ RUN dnf -y install @kde-desktop-environment \
       dbus-x11 \
       curl \
     && dnf clean all \
+    && systemctl enable sddm \
     && systemctl set-default graphical.target
 
 # Create a dedicated kiosk user
 RUN useradd -m -s /bin/bash kiosk
 
 # Copy website, quadlet config, and embedded bootc-image-builder defaults
-RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder
+RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder /etc/sddm.conf.d /home/kiosk/.config/autostart /home/kiosk/.local/bin
 COPY bootc/config.toml /usr/lib/bootc-image-builder/config.toml
 COPY index.html /usr/share/kiosk-site/index.html
 COPY config-files/kiosk-nginx.container /etc/containers/systemd/kiosk-nginx.container
+COPY config-files/sddm-autologin.conf /etc/sddm.conf.d/kiosk-autologin.conf
 
-# Autologin on tty1 for kiosk user (no manual login required)
-RUN mkdir -p /etc/systemd/system/getty@tty1.service.d
-COPY config-files/autologin.conf /etc/systemd/system/getty@tty1.service.d/autologin.conf
-
-# Copy kiosk user configuration files
-COPY config-files/bash_profile /home/kiosk/.bash_profile
-COPY config-files/xinitrc /home/kiosk/.xinitrc
+# Copy kiosk session startup files
+COPY config-files/firefox-kiosk.desktop /home/kiosk/.config/autostart/firefox-kiosk.desktop
+COPY config-files/kiosk-firefox.sh /home/kiosk/.local/bin/kiosk-firefox.sh
 
 # Set proper permissions
-RUN chmod +x /home/kiosk/.xinitrc && \
+RUN chmod +x /home/kiosk/.local/bin/kiosk-firefox.sh && \
     chown -R kiosk:kiosk /home/kiosk
 
 EXPOSE 8080
