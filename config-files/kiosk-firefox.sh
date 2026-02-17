@@ -25,11 +25,57 @@ export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME_DIR}/.config}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-${HOME_DIR}/.cache}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME_DIR}/.local/share}"
 
-PROFILE_DIR="${HOME_DIR}/.mozilla/kiosk-profile"
-if ! install -d -m 700 "${PROFILE_DIR}" 2>/dev/null; then
-  PROFILE_DIR="/tmp/kiosk-firefox-profile-${UID_NUM}"
-  install -d -m 700 "${PROFILE_DIR}"
+KWRITECONFIG_BIN=""
+for candidate in kwriteconfig6 kwriteconfig5 kwriteconfig; do
+  if command -v "${candidate}" >/dev/null 2>&1; then
+    KWRITECONFIG_BIN="${candidate}"
+    break
+  fi
+done
+
+QDBUS_BIN=""
+for candidate in qdbus6 qdbus-qt6 qdbus5 qdbus; do
+  if command -v "${candidate}" >/dev/null 2>&1; then
+    QDBUS_BIN="${candidate}"
+    break
+  fi
+done
+
+if [ -n "${KWRITECONFIG_BIN}" ]; then
+  "${KWRITECONFIG_BIN}" --file "${XDG_CONFIG_HOME}/kscreenlockerrc" --group Daemon --key Autolock false || true
+  "${KWRITECONFIG_BIN}" --file "${XDG_CONFIG_HOME}/kscreenlockerrc" --group Daemon --key LockOnResume false || true
+  "${KWRITECONFIG_BIN}" --file "${XDG_CONFIG_HOME}/kscreenlockerrc" --group Daemon --key Timeout 0 || true
+
+  for profile in AC Battery LowBattery; do
+    "${KWRITECONFIG_BIN}" --file "${XDG_CONFIG_HOME}/powermanagementprofilesrc" --group "${profile}" --group DPMSControl --key idleTime 0 || true
+    "${KWRITECONFIG_BIN}" --file "${XDG_CONFIG_HOME}/powermanagementprofilesrc" --group "${profile}" --group DPMSControl --key lockBeforeTurnOff 0 || true
+    "${KWRITECONFIG_BIN}" --file "${XDG_CONFIG_HOME}/powermanagementprofilesrc" --group "${profile}" --group DimDisplay --key idleTime 0 || true
+  done
 fi
+
+xset s off || true
+xset -dpms || true
+xset s noblank || true
+
+if [ -n "${QDBUS_BIN}" ]; then
+  "${QDBUS_BIN}" org.freedesktop.PowerManagement /org/kde/Solid/PowerManagement org.kde.Solid.PowerManagement.refreshStatus || true
+fi
+
+BROWSER_BIN=""
+for candidate in chromium chromium-browser google-chrome-stable google-chrome; do
+  if command -v "${candidate}" >/dev/null 2>&1; then
+    BROWSER_BIN="${candidate}"
+    break
+  fi
+done
+
+if [ -z "${BROWSER_BIN}" ]; then
+  echo "[$(date -Is)] no chromium-based browser found in PATH"
+  exit 1
+fi
+
+PROFILE_DIR="/tmp/kiosk-chromium-profile-${UID_NUM}"
+install -d -m 700 "${PROFILE_DIR}"
 
 for i in {1..60}; do
   if curl -fsS "$URL" >/dev/null 2>&1; then
@@ -39,11 +85,14 @@ for i in {1..60}; do
 done
 
 while true; do
-  rm -f "${PROFILE_DIR}/lock" "${PROFILE_DIR}/.parentlock" || true
-  firefox \
-    --no-remote \
-    --new-instance \
-    --profile "${PROFILE_DIR}" \
+  "${BROWSER_BIN}" \
+    --user-data-dir="${PROFILE_DIR}" \
+    --ozone-platform=x11 \
+    --no-first-run \
+    --no-default-browser-check \
+    --disable-session-crashed-bubble \
+    --disable-infobars \
+    --password-store=basic \
     --kiosk \
     "$URL" || true
   sleep 1
