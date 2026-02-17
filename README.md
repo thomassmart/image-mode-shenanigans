@@ -123,7 +123,7 @@ sudo cat /etc/sddm.conf.d/kiosk-autologin.conf
 
 - Firefox does not launch:
 ```bash
-cat /home/kiosk/kiosk-session.log
+cat /var/home/kiosk/kiosk-session.log
 ```
 
 - Kiosk page not reachable:

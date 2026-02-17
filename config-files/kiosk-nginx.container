@@ -8,7 +8,7 @@ Image=quay.io/nginx/nginx-unprivileged
 Pull=missing
 ContainerName=kiosk-nginx
 Network=host
-GlobalArgs=--root=/home/kiosk/containers-vfs/storage
+GlobalArgs=--root=/var/home/kiosk/containers-vfs/storage
 GlobalArgs=--runroot=/tmp/containers-vfs/runroot
 GlobalArgs=--storage-driver=vfs
 SecurityLabelDisable=true
@@ -18,7 +18,7 @@ Volume=/usr/share/kiosk-site:/usr/share/nginx/html:ro
 [Service]
 Restart=always
 TimeoutStartSec=120
-ExecStartPre=/usr/bin/mkdir -p /home/kiosk/containers-vfs/storage /tmp/containers-vfs/runroot
+ExecStartPre=/usr/bin/mkdir -p /var/home/kiosk/containers-vfs/storage /tmp/containers-vfs/runroot
 
 [Install]
 WantedBy=multi-user.target
