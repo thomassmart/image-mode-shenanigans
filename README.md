@@ -37,6 +37,9 @@ flowchart LR
 - `config-files/gnome-kiosk-script`: Script entrypoint used by `gnome-kiosk-script-session`.
 - `config-files/kiosk-chromium.sh`: Chromium kiosk launch loop.
 - `config-files/dconf-00-kiosk`: GNOME lock/suspend/power defaults.
+- `config-files/kiosk-script-home-link.conf`: Ensures the kiosk script is available at `~/.local/bin/gnome-kiosk-script`.
+- `config-files/org.gnome.Tour.desktop`: Disables GNOME Tour first-run prompt.
+- `config-files/gnome-keyring-*.desktop`: Disables keyring agent autostarts to avoid password prompts.
 - `config-files/kiosk-nginx.container`: Quadlet container definition for local content.
 - `index.html`: Kiosk web UI/content.
 
@@ -85,9 +88,10 @@ Then customize in this order:
 3. Adjust login/session defaults in `config-files/gdm-custom.conf`.
 4. Adjust GNOME Kiosk script handoff in `config-files/gnome-kiosk-script`.
 5. Adjust GNOME lock/power defaults in `config-files/dconf-00-kiosk`.
-6. Adjust bootc disk sizing in `bootc/config.toml`.
-7. Update your image reference in `bootc/build.toml`.
-8. Push to `main` to trigger image + ISO builds.
+6. Adjust first-run/keyring suppression in `config-files/org.gnome.Tour.desktop` and `config-files/gnome-keyring-*.desktop`.
+7. Adjust bootc disk sizing in `bootc/config.toml`.
+8. Update your image reference in `bootc/build.toml`.
+9. Push to `main` to trigger image + ISO builds.
 
 ## GitHub Actions Requirements
 
