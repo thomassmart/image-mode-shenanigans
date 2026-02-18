@@ -6,37 +6,39 @@ RUN dnf -y install qemu-guest-agent && \
     dnf clean all && \
     systemctl enable qemu-guest-agent
 
-# Install kiosk runtime packages and KDE desktop (dnf5 syntax)
-RUN dnf -y install @kde-desktop-environment \
+# Install kiosk runtime packages and GNOME desktop (dnf5 syntax)
+RUN dnf -y install @gnome-desktop-environment \
     && dnf -y install \
       podman \
-      firefox \
       chromium \
-      dbus-x11 \
       curl \
     && dnf clean all \
-    && systemctl enable sddm \
+    && systemctl enable gdm \
     && systemctl set-default graphical.target
 
 # Create a dedicated kiosk user
 RUN useradd -m -d /var/home/kiosk -s /bin/bash kiosk
 
 # Copy website, quadlet config, and embedded bootc-image-builder defaults
-RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder /etc/sddm.conf.d /etc/xdg/autostart /usr/local/bin /etc/tmpfiles.d /etc/environment.d
+RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder /etc/gdm /usr/local/bin /etc/tmpfiles.d /etc/dconf/profile /etc/dconf/db/local.d/locks /usr/share/gnome-session/sessions /usr/share/xsessions
 COPY bootc/config.toml /usr/lib/bootc-image-builder/config.toml
 COPY index.html /usr/share/kiosk-site/index.html
 COPY config-files/kiosk-nginx.container /etc/containers/systemd/kiosk-nginx.container
-COPY config-files/sddm-autologin.conf /etc/sddm.conf.d/kiosk-autologin.conf
+COPY config-files/gdm-custom.conf /etc/gdm/custom.conf
 COPY config-files/kiosk-home.conf /etc/tmpfiles.d/kiosk-home.conf
-COPY config-files/kde-cursor.conf /etc/environment.d/90-kde-cursor.conf
-COPY config-files/kscreenlockerrc /etc/xdg/kscreenlockerrc
-COPY config-files/powermanagementprofilesrc /etc/xdg/powermanagementprofilesrc
+COPY config-files/dconf-profile-user /etc/dconf/profile/user
+COPY config-files/dconf-00-kiosk /etc/dconf/db/local.d/00-kiosk
+COPY config-files/dconf-locks-kiosk /etc/dconf/db/local.d/locks/kiosk
 
 # Copy kiosk session startup files
-COPY config-files/firefox-kiosk.desktop /etc/xdg/autostart/firefox-kiosk.desktop
-COPY config-files/kiosk-firefox.sh /usr/local/bin/kiosk-firefox.sh
+COPY config-files/gnome-kiosk.session /usr/share/gnome-session/sessions/gnome-kiosk.session
+COPY config-files/gnome-kiosk.desktop /usr/share/xsessions/gnome-kiosk.desktop
+COPY config-files/org.gnome.Kiosk.Script.desktop /usr/share/applications/org.gnome.Kiosk.Script.desktop
+COPY config-files/org.gnome.Kiosk.WindowManager.desktop /usr/share/applications/org.gnome.Kiosk.WindowManager.desktop
+COPY config-files/kiosk-chromium.sh /usr/local/bin/kiosk-chromium.sh
 
 # Set proper permissions
-RUN chmod +x /usr/local/bin/kiosk-firefox.sh
+RUN chmod +x /usr/local/bin/kiosk-chromium.sh \
+    && if command -v dconf >/dev/null 2>&1; then dconf update; fi
 
 EXPOSE 8080

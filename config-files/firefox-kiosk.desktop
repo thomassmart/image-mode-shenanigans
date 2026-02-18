@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Chromium Kiosk
-Comment=Launch Chromium in kiosk mode for the local site
-Exec=/usr/bin/bash /usr/local/bin/kiosk-firefox.sh
-Terminal=false
-StartupNotify=false
-X-KDE-autostart-phase=2

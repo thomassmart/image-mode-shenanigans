@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Mutter
+Exec=/usr/bin/mutter
+NoDisplay=true
+X-GNOME-Autostart-Phase=WindowManager
+X-GNOME-Provides=windowmanager

@@ -1,0 +1,3 @@
+[GNOME Session]
+Name=GNOME Kiosk
+RequiredComponents=org.gnome.Kiosk.WindowManager;org.gnome.Kiosk.Script;

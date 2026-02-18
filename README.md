@@ -9,7 +9,7 @@ This project turns a single repo into a reproducible kiosk platform:
 - Builds a bootable OS image from `Containerfile`.
 - Publishes OCI tags to GHCR (`latest` and commit SHA).
 - Produces an installable ISO via `bootc-image-builder`.
-- Boots into KDE, autologs user `kiosk`, and opens Firefox in kiosk mode.
+- Boots into GNOME Kiosk, autologs user `kiosk`, and opens Chromium in kiosk mode.
 - Injects a `break-glass` admin user at ISO build time from GitHub Actions secrets.
 
 ## System Overview
@@ -22,9 +22,9 @@ flowchart LR
   D --> E["bootc-image-builder"]
   E --> F["ISO artifact"]
   F --> G["Install on VM or hardware"]
-  G --> H["SDDM autologin (kiosk)"]
-  H --> I["KDE autostart"]
-  I --> J["Firefox --kiosk http://127.0.0.1:8080/"]
+  G --> H["GDM autologin (kiosk)"]
+  H --> I["GNOME Kiosk session"]
+  I --> J["Chromium --kiosk http://127.0.0.1:8080/"]
 ```
 
 ## Repo Map
@@ -33,9 +33,10 @@ flowchart LR
 - `.github/workflows/image-build.yml`: Build + publish + ISO pipeline.
 - `bootc/config.toml`: bootc-image-builder customization baseline.
 - `bootc/build.toml`: Helper metadata for image/build paths.
-- `config-files/sddm-autologin.conf`: KDE autologin config.
-- `config-files/firefox-kiosk.desktop`: KDE autostart entry.
-- `config-files/kiosk-firefox.sh`: Firefox kiosk launch loop.
+- `config-files/gdm-custom.conf`: GNOME Display Manager autologin + default session config.
+- `config-files/gnome-kiosk.session`: GNOME Kiosk session components.
+- `config-files/kiosk-chromium.sh`: Chromium kiosk launch loop.
+- `config-files/dconf-00-kiosk`: GNOME lock/suspend/power defaults.
 - `config-files/kiosk-nginx.container`: Quadlet container definition for local content.
 - `index.html`: Kiosk web UI/content.
 
@@ -49,8 +50,8 @@ flowchart LR
 4. Install and reboot.
 
 Expected post-install behavior:
-- No manual KDE login prompt.
-- Firefox opens in kiosk mode automatically.
+- No manual GNOME login prompt.
+- Chromium opens in kiosk mode automatically.
 - `break-glass` user exists and is in `wheel`.
 
 ### 2. Use the Published GHCR Image
@@ -80,9 +81,9 @@ cd image-mode-shenanigans
 Then customize in this order:
 
 1. Edit kiosk content in `index.html`.
-2. Edit browser behavior in `config-files/kiosk-firefox.sh`.
-3. Adjust desktop autostart in `config-files/firefox-kiosk.desktop`.
-4. Adjust login/session defaults in `config-files/sddm-autologin.conf`.
+2. Edit browser behavior in `config-files/kiosk-chromium.sh`.
+3. Adjust login/session defaults in `config-files/gdm-custom.conf`.
+4. Adjust GNOME lock/power defaults in `config-files/dconf-00-kiosk`.
 5. Adjust bootc disk sizing in `bootc/config.toml`.
 6. Update your image reference in `bootc/build.toml`.
 7. Push to `main` to trigger image + ISO builds.
@@ -115,13 +116,13 @@ groups = ["wheel"]
 
 ## Troubleshooting
 
-- KDE still shows login screen:
+- GNOME still shows login screen:
 ```bash
-sudo systemctl status sddm
-sudo cat /etc/sddm.conf.d/kiosk-autologin.conf
+sudo systemctl status gdm
+sudo cat /etc/gdm/custom.conf
 ```
 
-- Firefox does not launch:
+- Chromium does not launch:
 ```bash
 cat /var/home/kiosk/kiosk-session.log
 ```
