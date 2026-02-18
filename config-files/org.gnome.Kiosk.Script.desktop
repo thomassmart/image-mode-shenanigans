@@ -1,5 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Chromium Kiosk
-Exec=/usr/local/bin/kiosk-chromium.sh
-NoDisplay=true

@@ -6,9 +6,11 @@ RUN dnf -y install qemu-guest-agent && \
     dnf clean all && \
     systemctl enable qemu-guest-agent
 
-# Install kiosk runtime packages and GNOME desktop (dnf5 syntax)
-RUN dnf -y install @gnome-desktop-environment \
-    && dnf -y install \
+# Install kiosk runtime packages (Fedora 43+ friendly, no group dependency)
+RUN dnf -y install \
+      gdm \
+      gnome-kiosk \
+      gnome-kiosk-script-session \
       podman \
       chromium \
       curl \
@@ -20,7 +22,7 @@ RUN dnf -y install @gnome-desktop-environment \
 RUN useradd -m -d /var/home/kiosk -s /bin/bash kiosk
 
 # Copy website, quadlet config, and embedded bootc-image-builder defaults
-RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder /etc/gdm /usr/local/bin /etc/tmpfiles.d /etc/dconf/profile /etc/dconf/db/local.d/locks /usr/share/gnome-session/sessions /usr/share/xsessions
+RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder /etc/gdm /usr/local/bin /etc/tmpfiles.d /etc/dconf/profile /etc/dconf/db/local.d/locks /var/home/kiosk/.local/bin
 COPY bootc/config.toml /usr/lib/bootc-image-builder/config.toml
 COPY index.html /usr/share/kiosk-site/index.html
 COPY config-files/kiosk-nginx.container /etc/containers/systemd/kiosk-nginx.container
@@ -31,14 +33,13 @@ COPY config-files/dconf-00-kiosk /etc/dconf/db/local.d/00-kiosk
 COPY config-files/dconf-locks-kiosk /etc/dconf/db/local.d/locks/kiosk
 
 # Copy kiosk session startup files
-COPY config-files/gnome-kiosk.session /usr/share/gnome-session/sessions/gnome-kiosk.session
-COPY config-files/gnome-kiosk.desktop /usr/share/xsessions/gnome-kiosk.desktop
-COPY config-files/org.gnome.Kiosk.Script.desktop /usr/share/applications/org.gnome.Kiosk.Script.desktop
-COPY config-files/org.gnome.Kiosk.WindowManager.desktop /usr/share/applications/org.gnome.Kiosk.WindowManager.desktop
 COPY config-files/kiosk-chromium.sh /usr/local/bin/kiosk-chromium.sh
+COPY config-files/gnome-kiosk-script /var/home/kiosk/.local/bin/gnome-kiosk-script
 
 # Set proper permissions
 RUN chmod +x /usr/local/bin/kiosk-chromium.sh \
+    && chmod +x /var/home/kiosk/.local/bin/gnome-kiosk-script \
+    && chown -R kiosk:kiosk /var/home/kiosk/.local \
     && if command -v dconf >/dev/null 2>&1; then dconf update; fi
 
 EXPOSE 8080

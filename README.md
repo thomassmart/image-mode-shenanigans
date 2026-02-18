@@ -34,7 +34,7 @@ flowchart LR
 - `bootc/config.toml`: bootc-image-builder customization baseline.
 - `bootc/build.toml`: Helper metadata for image/build paths.
 - `config-files/gdm-custom.conf`: GNOME Display Manager autologin + default session config.
-- `config-files/gnome-kiosk.session`: GNOME Kiosk session components.
+- `config-files/gnome-kiosk-script`: Script entrypoint used by `gnome-kiosk-script-session`.
 - `config-files/kiosk-chromium.sh`: Chromium kiosk launch loop.
 - `config-files/dconf-00-kiosk`: GNOME lock/suspend/power defaults.
 - `config-files/kiosk-nginx.container`: Quadlet container definition for local content.
@@ -83,10 +83,11 @@ Then customize in this order:
 1. Edit kiosk content in `index.html`.
 2. Edit browser behavior in `config-files/kiosk-chromium.sh`.
 3. Adjust login/session defaults in `config-files/gdm-custom.conf`.
-4. Adjust GNOME lock/power defaults in `config-files/dconf-00-kiosk`.
-5. Adjust bootc disk sizing in `bootc/config.toml`.
-6. Update your image reference in `bootc/build.toml`.
-7. Push to `main` to trigger image + ISO builds.
+4. Adjust GNOME Kiosk script handoff in `config-files/gnome-kiosk-script`.
+5. Adjust GNOME lock/power defaults in `config-files/dconf-00-kiosk`.
+6. Adjust bootc disk sizing in `bootc/config.toml`.
+7. Update your image reference in `bootc/build.toml`.
+8. Push to `main` to trigger image + ISO builds.
 
 ## GitHub Actions Requirements
 
