@@ -5,36 +5,52 @@
 <title>Self Checkout Demo</title>
 <style>
     :root {
-        --bg-start: #f7d34a;
-        --bg-end: #f59e0b;
-        --text-primary: #2f2200;
-        --text-on-accent: #fff7db;
-        --panel-soft: rgba(255, 244, 186, 0.65);
-        --panel-strong: rgba(247, 193, 68, 0.75);
-        --surface: rgba(255, 255, 255, 0.5);
-        --surface-alt: rgba(255, 255, 255, 0.35);
-        --surface-hover: rgba(255, 255, 255, 0.75);
-        --border-soft: rgba(107, 75, 0, 0.25);
-        --btn-pay-bg: #fcd34d;
-        --btn-pay-fg: #2f2200;
-        --btn-pay-hover: #fbbf24;
-        --btn-alt-bg: #b45309;
-        --btn-alt-hover: #92400e;
-        --btn-cancel-bg: #7c2d12;
-        --btn-cancel-hover: #631f0f;
-        --toast-bg: rgba(79, 57, 0, 0.88);
-        --modal-backdrop: rgba(71, 49, 0, 0.45);
-        --modal-bg: rgba(255, 247, 214, 0.96);
-        --shadow: rgba(83, 58, 0, 0.28);
+        --rainbow-bg: linear-gradient(
+            130deg,
+            #ff005d 0%,
+            #ff7a00 16%,
+            #ffd400 32%,
+            #2fd36b 48%,
+            #1ca9ff 64%,
+            #5a54ff 80%,
+            #b833ff 100%
+        );
+        --text-primary: #f7fbff;
+        --text-on-accent: #ffffff;
+        --panel-soft: rgba(17, 18, 49, 0.56);
+        --panel-strong: rgba(8, 13, 38, 0.68);
+        --surface: rgba(255, 255, 255, 0.14);
+        --surface-alt: rgba(255, 255, 255, 0.08);
+        --surface-hover: rgba(255, 255, 255, 0.24);
+        --border-soft: rgba(255, 255, 255, 0.26);
+        --btn-pay-bg: #ffd400;
+        --btn-pay-fg: #332500;
+        --btn-pay-hover: #f7c500;
+        --btn-alt-bg: #0060ff;
+        --btn-alt-hover: #004ed1;
+        --btn-cancel-bg: #b833ff;
+        --btn-cancel-hover: #9b1fe6;
+        --toast-bg: rgba(11, 16, 45, 0.92);
+        --modal-backdrop: rgba(7, 9, 25, 0.72);
+        --modal-bg: rgba(14, 19, 52, 0.95);
+        --shadow: rgba(5, 8, 26, 0.45);
     }
 
     body {
         margin: 0;
         font-family: "Segoe UI", Arial, sans-serif;
-        background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+        background: var(--rainbow-bg);
+        background-size: 280% 280%;
+        animation: rainbowShift 16s linear infinite;
         color: var(--text-primary);
         display: flex;
         height: 100vh;
+    }
+
+    @keyframes rainbowShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
     }
 
     .container {
@@ -272,6 +288,50 @@
         font-size: 16px;
         border-radius: 12px;
     }
+
+    .footer {
+        margin-top: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 12px;
+    }
+
+    .footer-text {
+        opacity: 0.9;
+        line-height: 1.35;
+        font-size: 14px;
+    }
+
+    .footer-video {
+        width: min(45%, 220px);
+        aspect-ratio: 16 / 9;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border-soft);
+        box-shadow: 0 8px 20px var(--shadow);
+        background: rgba(0, 0, 0, 0.35);
+    }
+
+    .footer-video video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    @media (max-width: 960px) {
+        .footer {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .footer-video {
+            width: 100%;
+            max-width: 220px;
+            align-self: flex-end;
+        }
+    }
 </style>
 </head>
 <body>
@@ -327,8 +387,16 @@
         </div>
 
         <div class="footer">
-            Touch screen to continue<br>
-            Demo Self-Checkout Interface
+            <div class="footer-text">
+                Touch screen to continue<br>
+                Demo Self-Checkout Interface
+            </div>
+            <div class="footer-video" aria-label="Looping promo video">
+                <video autoplay loop muted playsinline preload="metadata">
+                    <source src="loop.mp4" type="video/mp4">
+                    <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
+                </video>
+            </div>
         </div>
     </div>
 </div>

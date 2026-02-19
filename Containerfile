@@ -24,7 +24,6 @@ RUN useradd -m -d /var/home/kiosk -s /bin/bash kiosk
 # Copy website, quadlet config, and embedded bootc-image-builder defaults
 RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder /etc/gdm /usr/local/bin /etc/tmpfiles.d /etc/dconf/profile /etc/dconf/db/local.d/locks /etc/xdg/autostart /var/lib/AccountsService/users
 COPY bootc/config.toml /usr/lib/bootc-image-builder/config.toml
-COPY index.html /usr/share/kiosk-site/index.html
 COPY config-files/kiosk-nginx.container /etc/containers/systemd/kiosk-nginx.container
 COPY config-files/gdm-custom.conf /etc/gdm/custom.conf
 COPY config-files/accountsservice-kiosk /var/lib/AccountsService/users/kiosk
@@ -49,4 +48,5 @@ RUN chmod +x /usr/local/bin/kiosk-chromium.sh \
     && chmod +x /usr/local/bin/gnome-kiosk-script \
     && if command -v dconf >/dev/null 2>&1; then dconf update; fi
 
-EXPOSE 8080
+# Copy Index.html
+COPY index.html /usr/share/kiosk-site/index.html
