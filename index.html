@@ -289,6 +289,47 @@
         border-radius: 12px;
     }
 
+    .bug-overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 18px;
+        background: #ff5b00;
+        color: #2b0d00;
+        z-index: 300;
+        text-align: center;
+        animation: bugFlash 0.22s steps(1) infinite;
+    }
+
+    .bug-face {
+        font-size: clamp(120px, 24vw, 360px);
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        text-shadow: 0 8px 0 rgba(0, 0, 0, 0.18);
+    }
+
+    .bug-title {
+        font-size: clamp(28px, 3.8vw, 64px);
+        font-weight: 900;
+        letter-spacing: 0.06em;
+    }
+
+    .bug-subtitle {
+        font-size: clamp(16px, 2vw, 28px);
+        font-weight: 700;
+        padding: 0 20px;
+    }
+
+    @keyframes bugFlash {
+        0% { background: #ff7a00; }
+        50% { background: #ff5b00; }
+        100% { background: #ff3d00; }
+    }
+
     .footer {
         margin-top: 18px;
         display: flex;
@@ -413,6 +454,12 @@
     </div>
 </div>
 
+<div id="bugOverlay" class="bug-overlay" role="alert" aria-live="assertive" aria-hidden="true">
+    <div class="bug-face">:-(</div>
+    <div class="bug-title">CRITICAL CHECKOUT ERROR</div>
+    <div class="bug-subtitle">A serious issue has occurred.</div>
+</div>
+
 <script>
 (() => {
     const products = {
@@ -452,8 +499,10 @@
     const modalBody = $('modalBody');
     const modalClose = $('modalClose');
     const modalPrimary = $('modalPrimary');
+    const bugOverlay = $('bugOverlay');
 
     let modalPrimaryHandler = null;
+    let fakeBugTriggered = false;
 
     // AUD display while keeping formatting consistent (but no currency symbol surprises for demo)
     function moneyAUD(n) {
@@ -585,6 +634,11 @@
         }
         showToast(`Scanned: ${p.name} x${qty}`);
         renderCart();
+
+        const { items } = computeTotals();
+        if (!fakeBugTriggered && items === 2) {
+            triggerFakeBug();
+        }
     }
 
     function adjustQty(key, delta) {
@@ -611,6 +665,12 @@
     function clearCart() {
         cart.clear();
         renderCart();
+    }
+
+    function triggerFakeBug() {
+        fakeBugTriggered = true;
+        bugOverlay.style.display = 'flex';
+        bugOverlay.setAttribute('aria-hidden', 'false');
     }
 
 
