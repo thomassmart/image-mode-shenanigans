@@ -17,6 +17,7 @@ if ! touch "${LOG_FILE}" 2>/dev/null; then
 fi
 
 URL="${KIOSK_URL:-http://127.0.0.1/}"
+WAIT_FOR_HTTP_URL="${KIOSK_WAIT_FOR_HTTP_URL:-0}"
 
 exec >>"${LOG_FILE}" 2>&1
 
@@ -48,12 +49,14 @@ fi
 PROFILE_DIR="/tmp/kiosk-chromium-profile-${UID_NUM}"
 install -d -m 700 "${PROFILE_DIR}"
 
-for _ in {1..60}; do
-  if curl -fsS "${URL}" >/dev/null 2>&1; then
-    break
-  fi
-  sleep 1
-done
+if [[ "${WAIT_FOR_HTTP_URL}" == "1" && "${URL}" =~ ^https?:// ]]; then
+  for _ in {1..15}; do
+    if curl -fsS "${URL}" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 1
+  done
+fi
 
 while true; do
   "${BROWSER_BIN}" \

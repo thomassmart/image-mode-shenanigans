@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import configparser
+import glob
 import json
 import os
 import queue
@@ -275,9 +276,37 @@ def decode_hex(cfg, section, key):
     return bytes.fromhex(raw)
 
 
+def printer_profile_defaults(cfg):
+    profile = cfg_get(cfg, "printer", "profile", "generic").strip().lower()
+    if profile == "dn_usb_lp":
+        return {
+            "init_hex": "1b40",
+            "linefeed_hex": "0a",
+            "cut_hex": "1d5601",
+        }
+    return {}
+
+
+def resolve_printer_device(cfg):
+    configured = cfg_get(cfg, "printer", "device", "/dev/usb/lp0").strip()
+    if configured and os.path.exists(configured):
+        return configured
+
+    pattern = cfg_get(cfg, "printer", "device_glob", "/dev/usb/lp*").strip()
+    if pattern:
+        matches = sorted(glob.glob(pattern))
+        if matches:
+            return matches[0]
+
+    return configured
+
+
 def render_receipt_bytes(payload, cfg):
     encoding = cfg_get(cfg, "printer", "encoding", "utf-8")
-    linefeed = decode_hex(cfg, "printer", "linefeed_hex") or b"\n"
+    defaults = printer_profile_defaults(cfg)
+
+    linefeed_hex = cfg_get(cfg, "printer", "linefeed_hex", defaults.get("linefeed_hex", ""))
+    linefeed = bytes.fromhex(linefeed_hex) if linefeed_hex else b"\n"
 
     lines = []
     lines.append("SELF CHECKOUT RECEIPT")
@@ -303,7 +332,11 @@ def render_receipt_bytes(payload, cfg):
     if linefeed != b"\n":
         body = body.replace(b"\n", linefeed)
 
-    return decode_hex(cfg, "printer", "init_hex") + body + linefeed + linefeed + decode_hex(cfg, "printer", "cut_hex")
+    init_hex = cfg_get(cfg, "printer", "init_hex", defaults.get("init_hex", ""))
+    cut_hex = cfg_get(cfg, "printer", "cut_hex", defaults.get("cut_hex", ""))
+    init_bytes = bytes.fromhex(init_hex) if init_hex else b""
+    cut_bytes = bytes.fromhex(cut_hex) if cut_hex else b""
+    return init_bytes + body + linefeed + linefeed + cut_bytes
 
 
 def write_receipt(payload, cfg):
@@ -311,7 +344,9 @@ def write_receipt(payload, cfg):
     content = render_receipt_bytes(payload, cfg)
 
     if backend == "raw_usb":
-        device = cfg_get(cfg, "printer", "device", "/dev/usb/lp0")
+        device = resolve_printer_device(cfg)
+        if not device or not os.path.exists(device):
+            raise RuntimeError(f"Printer device not found: {device}")
         with open(device, "ab", buffering=0) as f:
             f.write(content)
         return

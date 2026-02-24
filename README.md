@@ -45,8 +45,7 @@ flowchart LR
 - `config-files/kiosk-pos-agent.py`: Local scanner/receipt bridge API (`127.0.0.1:8091`).
 - `config-files/kiosk-pos.conf`: Editable POS runtime configuration copied to `/etc/kiosk-pos.conf`.
 - `config-files/kiosk-zebra.conf`: Zebra installer settings copied to `/etc/kiosk-zebra.conf`.
-- `config-files/kiosk-install-zebra.sh`: One-shot local RPM installer for CoreScanner.
-- `config-files/kiosk-zebra-install.service`: Boot service that installs CoreScanner once.
+- `config-files/kiosk-install-zebra.sh`: Local RPM installer script used at image build time for CoreScanner.
 - `config-files/kiosk-pos-agent.service`: Boot service that exposes scan events and print endpoint.
 - `Zebra/`: Local Zebra RPM payload staged into the image at `/usr/local/share/zebra`.
 - `index.html`: Kiosk web UI/content.
@@ -131,10 +130,10 @@ groups = ["wheel"]
 
 ## Troubleshooting
 
-- Zebra/CoreScanner install status:
+- Zebra/CoreScanner install verification:
 ```bash
-sudo systemctl status kiosk-zebra-install.service
-sudo cat /var/lib/kiosk-pos/zebra-install.state
+rpm -qa | grep -i zebra
+systemctl status cscore.service || systemctl status corescanner.service
 ```
 
 - POS bridge service status:
@@ -147,7 +146,7 @@ curl -I http://127.0.0.1:8091/healthz
 ```bash
 sudoedit /etc/kiosk-pos.conf
 sudoedit /etc/kiosk-zebra.conf
-sudo systemctl restart kiosk-pos-agent.service kiosk-zebra-install.service
+sudo systemctl restart kiosk-pos-agent.service
 ```
 
 - GNOME still shows login screen:

@@ -13,6 +13,7 @@ RUN dnf -y install \
       python3-libs \
       cups \
       cups-client \
+      usbutils \
     && dnf clean all \
     && systemctl enable gdm \
     && systemctl set-default graphical.target
@@ -44,7 +45,6 @@ COPY config-files/kiosk-chromium.sh /usr/local/bin/kiosk-chromium.sh
 COPY config-files/gnome-kiosk-script /usr/local/bin/gnome-kiosk-script
 COPY config-files/kiosk-install-zebra.sh /usr/local/bin/kiosk-install-zebra.sh
 COPY config-files/kiosk-pos-agent.py /usr/local/bin/kiosk-pos-agent.py
-COPY config-files/kiosk-zebra-install.service /etc/systemd/system/kiosk-zebra-install.service
 COPY config-files/kiosk-pos-agent.service /etc/systemd/system/kiosk-pos-agent.service
 COPY config-files/kiosk-zebra.conf /etc/kiosk-zebra.conf
 COPY config-files/kiosk-pos.conf /etc/kiosk-pos.conf
@@ -55,7 +55,8 @@ RUN chmod +x /usr/local/bin/kiosk-chromium.sh \
     && chmod +x /usr/local/bin/kiosk-install-zebra.sh \
     && chmod +x /usr/local/bin/kiosk-pos-agent.py \
     && chmod +x /usr/local/bin/gnome-kiosk-script \
-    && systemctl enable kiosk-zebra-install.service \
+    && BUILD_TIME=1 /usr/local/bin/kiosk-install-zebra.sh \
+    && (systemctl enable cscore.service || systemctl enable corescanner.service || true) \
     && systemctl enable kiosk-pos-agent.service \
     && if command -v dconf >/dev/null 2>&1; then dconf update; fi
 

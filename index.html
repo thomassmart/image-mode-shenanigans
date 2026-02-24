@@ -550,8 +550,10 @@
 </div>
 
 <div id="screensaverOverlay" class="screensaver-overlay" aria-hidden="true">
-    <video id="screensaverVideo" loop muted playsinline preload="metadata">
-        <source src="/screensaver.mp4" type="video/mp4">
+    <video id="screensaverVideo" loop autoplay muted playsinline preload="auto">
+        <source src="screensaver.mp4" type="video/mp4">
+        <source src="./screensaver.mp4" type="video/mp4">
+        <source src="file:///usr/share/kiosk-site/screensaver.mp4" type="video/mp4">
     </video>
     <div id="screensaverMessage" class="screensaver-message">Screensaver active - touch to continue</div>
 </div>
@@ -1065,6 +1067,13 @@
     });
     screensaverOverlay.addEventListener('click', handleUserActivity);
     screensaverOverlay.addEventListener('mousemove', handleUserActivity);
+    screensaverVideo.addEventListener('ended', () => {
+        // Defensive replay path for devices/browsers that ignore `loop` intermittently.
+        screensaverVideo.currentTime = 0;
+        screensaverVideo.play().catch(() => {
+            screensaverMessage.style.display = 'block';
+        });
+    });
     screensaverVideo.addEventListener('error', () => {
         screensaverMessage.style.display = 'block';
     });

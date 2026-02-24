@@ -4,10 +4,11 @@ set -euo pipefail
 CFG_FILE="/etc/kiosk-zebra.conf"
 STATE_DIR="/var/lib/kiosk-pos"
 STATE_FILE="${STATE_DIR}/zebra-install.state"
+BUILD_TIME="${BUILD_TIME:-0}"
 
 mkdir -p "${STATE_DIR}"
 
-if [ -f "${STATE_FILE}" ]; then
+if [ "${BUILD_TIME}" != "1" ] && [ -f "${STATE_FILE}" ]; then
   echo "[zebra-install] state exists, skipping"
   exit 0
 fi
@@ -62,18 +63,22 @@ if [ "${ENABLE_CLU}" = "true" ]; then
   echo "[zebra-install] CLU enabled by config"
 fi
 
-for unit in cscore.service corescanner.service; do
-  if systemctl list-unit-files | grep -q "^${unit}"; then
-    echo "[zebra-install] enabling ${unit}"
-    systemctl enable --now "${unit}" || true
-    break
-  fi
-done
+if [ "${BUILD_TIME}" != "1" ]; then
+  for unit in cscore.service corescanner.service; do
+    if systemctl list-unit-files | grep -q "^${unit}"; then
+      echo "[zebra-install] enabling ${unit}"
+      systemctl enable --now "${unit}" || true
+      break
+    fi
+  done
+fi
 
-{
-  echo "installed_at=$(date -Is)"
-  echo "core_rpm=${CORE_RPM}"
-  echo "local_dir=${SDK_LOCAL_DIR}"
-} > "${STATE_FILE}"
+if [ "${BUILD_TIME}" != "1" ]; then
+  {
+    echo "installed_at=$(date -Is)"
+    echo "core_rpm=${CORE_RPM}"
+    echo "local_dir=${SDK_LOCAL_DIR}"
+  } > "${STATE_FILE}"
+fi
 
 echo "[zebra-install] complete"

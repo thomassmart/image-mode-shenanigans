@@ -16,3 +16,10 @@ sleep-inactive-battery-type='nothing'
 
 [org/gnome/shell]
 welcome-dialog-last-shown-version='999.0'
+
+[org/gnome/desktop/background]
+picture-uri=''
+picture-uri-dark=''
+primary-color='#0c0f1a'
+secondary-color='#0c0f1a'
+color-shading-type='solid'

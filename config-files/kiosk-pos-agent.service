@@ -1,7 +1,7 @@
 [Unit]
 Description=Kiosk POS scanner and print bridge
-After=network-online.target kiosk-zebra-install.service
-Wants=network-online.target kiosk-zebra-install.service
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
