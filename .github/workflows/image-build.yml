@@ -23,6 +23,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Stamp build version into kiosk UI
+        run: |
+          set -euo pipefail
+          test -n "${GITHUB_RUN_NUMBER:-}" || { echo "Missing GITHUB_RUN_NUMBER"; exit 1; }
+          test -n "${GITHUB_SHA:-}" || { echo "Missing GITHUB_SHA"; exit 1; }
+
+          PLACEHOLDER="__BUILD_VERSION__"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          BUILD_LABEL="Build ${GITHUB_RUN_NUMBER} • ${SHORT_SHA}"
+
+          grep -q "${PLACEHOLDER}" index.html || { echo "Version placeholder not found in index.html"; exit 1; }
+
+          ESCAPED_BUILD_LABEL="$(printf '%s' "${BUILD_LABEL}" | sed 's/[\/&]/\\&/g')"
+          sed -i "s/${PLACEHOLDER}/${ESCAPED_BUILD_LABEL}/g" index.html
+          grep -q "${BUILD_LABEL}" index.html || { echo "Failed to stamp build label"; exit 1; }
+
       - name: Build image with Podman
         run: |
           podman build \

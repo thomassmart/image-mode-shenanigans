@@ -107,8 +107,9 @@ Required secrets:
 What CI does:
 
 1. Builds/pushes image to `ghcr.io/<owner>/<repo>`.
-2. Copies `bootc/config.toml` into a temporary config.
-3. Appends:
+2. Stamps `index.html` with UI build metadata: `Build <run-number> • <short-sha>`.
+3. Copies `bootc/config.toml` into a temporary config.
+4. Appends:
 
 ```toml
 [[customizations.user]]
@@ -118,8 +119,8 @@ key = "<from-secret>"
 groups = ["wheel"]
 ```
 
-4. Builds ISO with `--config /config.toml`.
-5. Uploads ISO artifacts.
+5. Builds ISO with `--config /config.toml`.
+6. Uploads ISO artifacts.
 
 ## Troubleshooting
 
@@ -144,3 +145,5 @@ curl -I http://127.0.0.1/
 
 - This repo is intentionally image-first: you version the OS behavior and app content together.
 - `break-glass` is created during ISO build customization, not hardcoded into the base image layer.
+- Screensaver behavior is browser-managed in `index.html` with a 60-second inactivity timer.
+- For best kiosk playback reliability, `screensaver.mp4` should use H.264 video + AAC audio in an MP4 container.
