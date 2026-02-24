@@ -192,6 +192,12 @@
         align-items: center;
     }
 
+    .pos-status {
+        margin-top: 6px;
+        font-size: 13px;
+        opacity: 0.9;
+    }
+
     .camera-panel {
         border: 1px solid var(--border-soft);
         border-radius: 12px;
@@ -460,6 +466,7 @@
 
     <div class="items">
         <div class="header">Scan Items</div>
+        <div id="posStatus" class="pos-status">POS bridge: connecting…</div>
 
         <div class="scan-panel" aria-label="Scan panel">
             <div class="product-buttons">
@@ -552,6 +559,7 @@
 <script>
 (() => {
     const IDLE_TIMEOUT_MS = 60000;
+    const ENABLE_FAKE_BUG = false;
     const products = {
         apples: { name: 'Organic Apples', price: 3.20 },
         milk: { name: 'Milk 2L', price: 2.80 },
@@ -593,6 +601,7 @@
     const cameraPreview = $('cameraPreview');
     const cameraSelect = $('cameraSelect');
     const cameraStatus = $('cameraStatus');
+    const posStatus = $('posStatus');
     const screensaverOverlay = $('screensaverOverlay');
     const screensaverVideo = $('screensaverVideo');
     const screensaverMessage = $('screensaverMessage');
@@ -602,6 +611,9 @@
     let activeCameraStream = null;
     let screensaverTimer = null;
     let screensaverActive = false;
+    let posEvents = null;
+    let posReconnectTimer = null;
+    const transactionBarcodePrices = new Map();
 
     // AUD display while keeping formatting consistent (but no currency symbol surprises for demo)
     function moneyAUD(n) {
@@ -613,6 +625,115 @@
         toast.classList.add('show');
         window.clearTimeout(showToast._t);
         showToast._t = window.setTimeout(() => toast.classList.remove('show'), 1600);
+    }
+
+    function randomPrice() {
+        return Number((Math.random() * 24 + 1).toFixed(2));
+    }
+
+    function resetTransactionPricing() {
+        transactionBarcodePrices.clear();
+    }
+
+    function upsertBarcodeProduct(barcode) {
+        const known = transactionBarcodePrices.get(barcode);
+        if (known) return known;
+
+        const key = `scan:${barcode}`;
+        const price = randomPrice();
+        const name = `Scanned Barcode ${barcode}`;
+        transactionBarcodePrices.set(barcode, { key, name, price });
+        products[key] = { name, price };
+        return { key, name, price };
+    }
+
+    function sanitizeBarcode(raw) {
+        const cleaned = String(raw || '').trim();
+        if (!cleaned) return '';
+        return cleaned.replace(/[^0-9A-Za-z_-]/g, '');
+    }
+
+    function handleBarcodeScan(rawBarcode) {
+        const barcode = sanitizeBarcode(rawBarcode);
+        if (barcode.length < 4) return;
+        const p = upsertBarcodeProduct(barcode);
+        addToCart(p.key, 1);
+    }
+
+    async function postReceipt(methodLabel) {
+        const { total } = computeTotals();
+        const items = Array.from(cart.values()).map((line) => ({
+            name: line.name,
+            qty: line.qty,
+            unit_price: line.price,
+            line_total: Number((line.price * line.qty).toFixed(2))
+        }));
+
+        const payload = {
+            transaction_id: `txn-${Date.now()}`,
+            payment_method: methodLabel,
+            timestamp: new Date().toISOString(),
+            items,
+            total: Number(total.toFixed(2))
+        };
+
+        const resp = await fetch('http://127.0.0.1:8091/print', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+            let msg = 'print failed';
+            try {
+                const body = await resp.json();
+                if (body && body.error) msg = body.error;
+            } catch (_) {}
+            throw new Error(msg);
+        }
+    }
+
+    function schedulePosReconnect() {
+        window.clearTimeout(posReconnectTimer);
+        posReconnectTimer = window.setTimeout(connectPosEvents, 3000);
+    }
+
+    function connectPosEvents() {
+        if (!window.EventSource) {
+            posStatus.textContent = 'POS bridge: EventSource unavailable';
+            return;
+        }
+
+        if (posEvents) {
+            posEvents.close();
+            posEvents = null;
+        }
+
+        posStatus.textContent = 'POS bridge: connecting...';
+        posEvents = new EventSource('http://127.0.0.1:8091/events');
+
+        posEvents.addEventListener('open', () => {
+            posStatus.textContent = 'POS bridge: connected';
+        });
+
+        posEvents.addEventListener('scan', (event) => {
+            handleUserActivity();
+            try {
+                const payload = JSON.parse(event.data);
+                handleBarcodeScan(payload.barcode);
+            } catch (_) {
+                // Ignore malformed event payloads.
+            }
+        });
+
+        posEvents.addEventListener('error', () => {
+            posStatus.textContent = 'POS bridge: reconnecting...';
+            if (posEvents) {
+                posEvents.close();
+                posEvents = null;
+            }
+            schedulePosReconnect();
+        });
     }
 
     function computeTotals() {
@@ -803,7 +924,7 @@
         renderCart();
 
         const { items } = computeTotals();
-        if (!fakeBugTriggered && items === 2) {
+        if (ENABLE_FAKE_BUG && !fakeBugTriggered && items === 2) {
             triggerFakeBug();
         }
     }
@@ -829,8 +950,11 @@
         }
     }
 
-    function clearCart() {
+    function clearCart(resetPricing = false) {
         cart.clear();
+        if (resetPricing) {
+            resetTransactionPricing();
+        }
         renderCart();
     }
 
@@ -885,11 +1009,15 @@
             `${methodLabel}`,
             `You are about to pay ${moneyAUD(total)} for ${items} item(s).`,
             'Confirm payment',
-            () => {
+            async () => {
                 closeModal();
-                showToast('Payment approved (demo)');
-                // Simulate receipt by clearing cart
-                clearCart();
+                try {
+                    await postReceipt(methodLabel);
+                    showToast('Payment approved and receipt printed');
+                    clearCart(true);
+                } catch (err) {
+                    showToast(`Print failed: ${err.message || err}`);
+                }
             }
         );
     }
@@ -916,7 +1044,7 @@
         }
         openModal('Cancel transaction', 'This will cancel the transaction and clear the cart.', 'Cancel transaction', () => {
             closeModal();
-            clearCart();
+            clearCart(true);
             showToast('Transaction cancelled');
         });
     });
@@ -943,6 +1071,7 @@
 
     // Initial state
     renderCart();
+    connectPosEvents();
     startCamera('');
     screensaverVideo.load();
     scheduleScreensaver();

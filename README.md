@@ -42,6 +42,13 @@ flowchart LR
 - `config-files/gnome-keyring-*.desktop`: Disables keyring agent autostarts to avoid password prompts.
 - `config-files/kiosk-nginx.container`: Quadlet container definition for local content.
 - `config-files/environment`: Editable system-wide `/etc/environment` proxy template (HTTP/HTTPS/NO_PROXY).
+- `config-files/kiosk-pos-agent.py`: Local scanner/receipt bridge API (`127.0.0.1:8091`).
+- `config-files/kiosk-pos.conf`: Editable POS runtime configuration copied to `/etc/kiosk-pos.conf`.
+- `config-files/kiosk-zebra.conf`: Zebra installer settings copied to `/etc/kiosk-zebra.conf`.
+- `config-files/kiosk-install-zebra.sh`: One-shot local RPM installer for CoreScanner.
+- `config-files/kiosk-zebra-install.service`: Boot service that installs CoreScanner once.
+- `config-files/kiosk-pos-agent.service`: Boot service that exposes scan events and print endpoint.
+- `Zebra/`: Local Zebra RPM payload staged into the image at `/usr/local/share/zebra`.
 - `index.html`: Kiosk web UI/content.
 - `screensaver.mp4`: Idle screensaver video shown after inactivity.
 
@@ -123,6 +130,25 @@ groups = ["wheel"]
 6. Uploads ISO artifacts.
 
 ## Troubleshooting
+
+- Zebra/CoreScanner install status:
+```bash
+sudo systemctl status kiosk-zebra-install.service
+sudo cat /var/lib/kiosk-pos/zebra-install.state
+```
+
+- POS bridge service status:
+```bash
+sudo systemctl status kiosk-pos-agent.service
+curl -I http://127.0.0.1:8091/healthz
+```
+
+- POS config edit points:
+```bash
+sudoedit /etc/kiosk-pos.conf
+sudoedit /etc/kiosk-zebra.conf
+sudo systemctl restart kiosk-pos-agent.service kiosk-zebra-install.service
+```
 
 - GNOME still shows login screen:
 ```bash

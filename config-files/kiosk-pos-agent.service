@@ -1,0 +1,13 @@
+[Unit]
+Description=Kiosk POS scanner and print bridge
+After=network-online.target kiosk-zebra-install.service
+Wants=network-online.target kiosk-zebra-install.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/kiosk-pos-agent.py --config /etc/kiosk-pos.conf
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -64,6 +64,7 @@ while true; do
     --disable-session-crashed-bubble \
     --disable-infobars \
     --password-store=basic \
+    --kiosk-printing \
     --use-fake-ui-for-media-stream \
     --autoplay-policy=no-user-gesture-required \
     --kiosk \

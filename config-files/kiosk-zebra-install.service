@@ -1,0 +1,14 @@
+[Unit]
+Description=Install Zebra CoreScanner stack (one-shot)
+After=network-online.target
+Wants=network-online.target
+Before=kiosk-pos-agent.service
+ConditionPathExists=!/var/lib/kiosk-pos/zebra-install.state
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/kiosk-install-zebra.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
