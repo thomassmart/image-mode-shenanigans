@@ -170,12 +170,11 @@
     }
 
     .camera-panel {
-        margin-top: 16px;
-        margin-bottom: 16px;
         border: 1px solid var(--border-soft);
         border-radius: 12px;
         background: var(--surface-alt);
         padding: 12px;
+        box-sizing: border-box;
     }
 
     .camera-controls {
@@ -400,12 +399,19 @@
 
     .footer {
         margin-top: 18px;
+        width: 100%;
     }
 
-    .footer-text {
-        opacity: 0.9;
-        line-height: 1.35;
-        font-size: 14px;
+    .summary .camera-panel {
+        width: 100%;
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 960px) {
+        .summary .camera-panel {
+            width: 100%;
+        }
     }
 
 </style>
@@ -430,19 +436,6 @@
                 <button class="btn-product" data-key="berries">Mixed Berries 300g</button>
                 <button class="btn-product" data-key="yogurt">Greek Yogurt 1kg</button>
                 <button class="btn-product" data-key="chicken">Chicken Breast 1kg</button>
-            </div>
-        </div>
-
-        <div class="camera-panel" aria-label="Camera preview panel">
-            <div class="camera-controls">
-                <label for="cameraSelect">Camera</label>
-                <select id="cameraSelect" aria-label="Camera device selection">
-                    <option value="">Loading cameras…</option>
-                </select>
-                <div id="cameraStatus" class="camera-status">Initializing camera preview…</div>
-            </div>
-            <div class="camera-stage">
-                <video id="cameraPreview" autoplay muted playsinline></video>
             </div>
         </div>
 
@@ -476,9 +469,17 @@
         </div>
 
         <div class="footer">
-            <div class="footer-text">
-                Touch screen to continue<br>
-                Demo Self-Checkout Interface
+            <div class="camera-panel" aria-label="Camera preview panel">
+                <div class="camera-controls">
+                    <label for="cameraSelect">Camera</label>
+                    <select id="cameraSelect" aria-label="Camera device selection">
+                        <option value="">Loading cameras…</option>
+                    </select>
+                    <div id="cameraStatus" class="camera-status">Initializing camera preview…</div>
+                </div>
+                <div class="camera-stage">
+                    <video id="cameraPreview" autoplay muted playsinline></video>
+                </div>
             </div>
         </div>
     </div>
