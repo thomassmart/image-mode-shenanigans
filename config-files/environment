@@ -1,0 +1,6 @@
+# Global proxy configuration for kiosk and interactive shell sessions.
+# Uncomment and adjust values to enable a proxy.
+
+# export HTTP_PROXY=http://proxy.example.com:8080
+# export HTTPS_PROXY=http://proxy.example.com:8080
+# export NO_PROXY=localhost,127.0.0.1,.example.internal

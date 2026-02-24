@@ -24,7 +24,7 @@ flowchart LR
   F --> G["Install on VM or hardware"]
   G --> H["GDM autologin (kiosk)"]
   H --> I["GNOME Kiosk session"]
-  I --> J["Chromium --kiosk http://127.0.0.1:8080/"]
+  I --> J["Chromium --kiosk http://127.0.0.1/"]
 ```
 
 ## Repo Map
@@ -41,7 +41,9 @@ flowchart LR
 - `config-files/org.gnome.Tour.desktop`: Disables GNOME Tour first-run prompt.
 - `config-files/gnome-keyring-*.desktop`: Disables keyring agent autostarts to avoid password prompts.
 - `config-files/kiosk-nginx.container`: Quadlet container definition for local content.
+- `config-files/environment`: Editable system-wide `/etc/environment` proxy template (HTTP/HTTPS/NO_PROXY).
 - `index.html`: Kiosk web UI/content.
+- `screensaver.mp4`: Idle screensaver video shown after inactivity.
 
 ## How To Consume What It Builds
 
@@ -135,7 +137,7 @@ cat /var/home/kiosk/kiosk-session.log
 - Kiosk page not reachable:
 ```bash
 sudo systemctl status kiosk-nginx.service
-curl -I http://127.0.0.1:8080/
+curl -I http://127.0.0.1/
 ```
 
 ## Notes

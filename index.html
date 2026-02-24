@@ -169,7 +169,58 @@
         align-items: center;
     }
 
-    /* Removed select/input styling as quantity input is gone */
+    .camera-panel {
+        margin-top: 16px;
+        margin-bottom: 16px;
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        background: var(--surface-alt);
+        padding: 12px;
+    }
+
+    .camera-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+    .camera-controls label {
+        font-size: 14px;
+        opacity: 0.95;
+    }
+
+    .camera-controls select {
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text-primary);
+        padding: 8px 10px;
+        min-width: 220px;
+    }
+
+    .camera-status {
+        font-size: 13px;
+        opacity: 0.9;
+    }
+
+    .camera-stage {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border-soft);
+        box-shadow: 0 8px 20px var(--shadow);
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .camera-stage video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
 
     .product-buttons {
         display: grid;
@@ -324,6 +375,23 @@
         padding: 0 20px;
     }
 
+    .screensaver-overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        z-index: 500;
+    }
+
+    .screensaver-overlay video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
     @keyframes bugFlash {
         0% { background: #ff7a00; }
         50% { background: #ff5b00; }
@@ -332,10 +400,6 @@
 
     .footer {
         margin-top: 18px;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        gap: 12px;
     }
 
     .footer-text {
@@ -344,35 +408,6 @@
         font-size: 14px;
     }
 
-    .footer-video {
-        width: min(45%, 220px);
-        aspect-ratio: 16 / 9;
-        border-radius: 12px;
-        overflow: hidden;
-        border: 1px solid var(--border-soft);
-        box-shadow: 0 8px 20px var(--shadow);
-        background: rgba(0, 0, 0, 0.35);
-    }
-
-    .footer-video video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-
-    @media (max-width: 960px) {
-        .footer {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .footer-video {
-            width: 100%;
-            max-width: 220px;
-            align-self: flex-end;
-        }
-    }
 </style>
 </head>
 <body>
@@ -395,6 +430,19 @@
                 <button class="btn-product" data-key="berries">Mixed Berries 300g</button>
                 <button class="btn-product" data-key="yogurt">Greek Yogurt 1kg</button>
                 <button class="btn-product" data-key="chicken">Chicken Breast 1kg</button>
+            </div>
+        </div>
+
+        <div class="camera-panel" aria-label="Camera preview panel">
+            <div class="camera-controls">
+                <label for="cameraSelect">Camera</label>
+                <select id="cameraSelect" aria-label="Camera device selection">
+                    <option value="">Loading cameras…</option>
+                </select>
+                <div id="cameraStatus" class="camera-status">Initializing camera preview…</div>
+            </div>
+            <div class="camera-stage">
+                <video id="cameraPreview" autoplay muted playsinline></video>
             </div>
         </div>
 
@@ -432,12 +480,6 @@
                 Touch screen to continue<br>
                 Demo Self-Checkout Interface
             </div>
-            <div class="footer-video" aria-label="Looping promo video">
-                <video autoplay loop muted playsinline preload="metadata">
-                    <source src="loop.mp4" type="video/mp4">
-                    <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
-                </video>
-            </div>
         </div>
     </div>
 </div>
@@ -460,8 +502,15 @@
     <div class="bug-subtitle">A serious issue has occurred.</div>
 </div>
 
+<div id="screensaverOverlay" class="screensaver-overlay" aria-hidden="true">
+    <video id="screensaverVideo" loop muted playsinline preload="metadata">
+        <source src="/screensaver.mp4" type="video/mp4">
+    </video>
+</div>
+
 <script>
 (() => {
+    const IDLE_TIMEOUT_MS = 45000;
     const products = {
         apples: { name: 'Organic Apples', price: 3.20 },
         milk: { name: 'Milk 2L', price: 2.80 },
@@ -500,9 +549,17 @@
     const modalClose = $('modalClose');
     const modalPrimary = $('modalPrimary');
     const bugOverlay = $('bugOverlay');
+    const cameraPreview = $('cameraPreview');
+    const cameraSelect = $('cameraSelect');
+    const cameraStatus = $('cameraStatus');
+    const screensaverOverlay = $('screensaverOverlay');
+    const screensaverVideo = $('screensaverVideo');
 
     let modalPrimaryHandler = null;
     let fakeBugTriggered = false;
+    let activeCameraStream = null;
+    let screensaverTimer = null;
+    let screensaverActive = false;
 
     // AUD display while keeping formatting consistent (but no currency symbol surprises for demo)
     function moneyAUD(n) {
@@ -551,6 +608,74 @@
         if (modalPrimaryHandler) {
             modalPrimary.removeEventListener('click', modalPrimaryHandler);
             modalPrimaryHandler = null;
+        }
+    }
+
+    function stopCameraStream() {
+        if (!activeCameraStream) return;
+        activeCameraStream.getTracks().forEach(track => track.stop());
+        activeCameraStream = null;
+    }
+
+    async function refreshCameraDevices(selectedId) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+            cameraSelect.innerHTML = '<option value="">No camera API available</option>';
+            return;
+        }
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(device => device.kind === 'videoinput');
+        cameraSelect.innerHTML = '';
+
+        if (cameras.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'No cameras found';
+            cameraSelect.appendChild(opt);
+            cameraSelect.disabled = true;
+            return;
+        }
+
+        cameraSelect.disabled = false;
+        cameras.forEach((camera, idx) => {
+            const opt = document.createElement('option');
+            opt.value = camera.deviceId;
+            opt.textContent = camera.label || `Camera ${idx + 1}`;
+            cameraSelect.appendChild(opt);
+        });
+
+        if (selectedId) {
+            cameraSelect.value = selectedId;
+        }
+    }
+
+    async function startCamera(deviceId) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            cameraStatus.textContent = 'Camera preview is unavailable in this browser.';
+            return;
+        }
+
+        stopCameraStream();
+        cameraStatus.textContent = 'Starting camera...';
+
+        const constraints = {
+            video: deviceId ? { deviceId: { exact: deviceId } } : true,
+            audio: false
+        };
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            activeCameraStream = stream;
+            cameraPreview.srcObject = stream;
+
+            const currentTrack = stream.getVideoTracks()[0];
+            const currentDeviceId = currentTrack ? currentTrack.getSettings().deviceId : '';
+            await refreshCameraDevices(currentDeviceId || deviceId || '');
+            cameraStatus.textContent = 'Live camera preview active.';
+        } catch (err) {
+            cameraStatus.textContent = `Camera unavailable: ${err.message || 'unknown error'}`;
+            cameraSelect.innerHTML = '<option value="">Camera unavailable</option>';
+            cameraSelect.disabled = true;
         }
     }
 
@@ -673,6 +798,35 @@
         bugOverlay.setAttribute('aria-hidden', 'false');
     }
 
+    function showScreensaver() {
+        if (screensaverActive) return;
+        screensaverActive = true;
+        screensaverOverlay.style.display = 'flex';
+        screensaverOverlay.setAttribute('aria-hidden', 'false');
+        screensaverVideo.play().catch(() => {});
+    }
+
+    function hideScreensaver() {
+        if (!screensaverActive) return;
+        screensaverActive = false;
+        screensaverOverlay.style.display = 'none';
+        screensaverOverlay.setAttribute('aria-hidden', 'true');
+        screensaverVideo.pause();
+        screensaverVideo.currentTime = 0;
+    }
+
+    function scheduleScreensaver() {
+        window.clearTimeout(screensaverTimer);
+        screensaverTimer = window.setTimeout(showScreensaver, IDLE_TIMEOUT_MS);
+    }
+
+    function handleUserActivity() {
+        if (screensaverActive) {
+            hideScreensaver();
+        }
+        scheduleScreensaver();
+    }
+
 
     function payFlow(methodLabel) {
         const { total, items } = computeTotals();
@@ -726,11 +880,22 @@
         if (e.target === modalBackdrop) closeModal();
     });
     document.addEventListener('keydown', (e) => {
+        handleUserActivity();
         if (e.key === 'Escape') closeModal();
     });
+    cameraSelect.addEventListener('change', () => startCamera(cameraSelect.value));
+
+    const activityEvents = ['mousemove', 'mousedown', 'touchstart', 'wheel'];
+    activityEvents.forEach(eventName => {
+        document.addEventListener(eventName, handleUserActivity, { passive: true });
+    });
+    screensaverOverlay.addEventListener('click', handleUserActivity);
+    screensaverOverlay.addEventListener('mousemove', handleUserActivity);
 
     // Initial state
     renderCart();
+    startCamera('');
+    scheduleScreensaver();
 })();
 </script>
 </body>

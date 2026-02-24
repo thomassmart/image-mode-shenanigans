@@ -4,7 +4,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Container]
-Image=quay.io/nginx/nginx-unprivileged
+Image=docker.io/library/nginx:stable
 Pull=missing
 ContainerName=kiosk-nginx
 Network=host

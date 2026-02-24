@@ -1,11 +1,6 @@
 # Bootable Fedora base image
 FROM quay.io/fedora/fedora-bootc:latest
 
-# Install QEMU guest agent for better integration with the host (optional but recommended)
-RUN dnf -y install qemu-guest-agent && \
-    dnf clean all && \
-    systemctl enable qemu-guest-agent
-
 # Install kiosk runtime packages (Fedora 43+ friendly, no group dependency)
 RUN dnf -y install \
       gdm \
@@ -25,6 +20,7 @@ RUN useradd -m -d /var/home/kiosk -s /bin/bash kiosk
 RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder /etc/gdm /usr/local/bin /etc/tmpfiles.d /etc/dconf/profile /etc/dconf/db/local.d/locks /etc/xdg/autostart /var/lib/AccountsService/users
 COPY bootc/config.toml /usr/lib/bootc-image-builder/config.toml
 COPY config-files/kiosk-nginx.container /etc/containers/systemd/kiosk-nginx.container
+COPY config-files/environment /etc/environment
 COPY config-files/gdm-custom.conf /etc/gdm/custom.conf
 COPY config-files/accountsservice-kiosk /var/lib/AccountsService/users/kiosk
 COPY config-files/kiosk-home.conf /etc/tmpfiles.d/kiosk-home.conf
@@ -50,3 +46,4 @@ RUN chmod +x /usr/local/bin/kiosk-chromium.sh \
 
 # Copy Index.html
 COPY index.html /usr/share/kiosk-site/index.html
+COPY screensaver.mp4 /usr/share/kiosk-site/screensaver.mp4
