@@ -25,6 +25,7 @@ SDK_LOCAL_DIR="${SDK_LOCAL_DIR:-/usr/local/share/zebra}"
 SDK_FILE="${SDK_FILE:-}"
 SDK_SHA256="${SDK_SHA256:-}"
 ENABLE_CLU="${ENABLE_CLU:-true}"
+ALLOW_LEGACY_RPM="${ALLOW_LEGACY_RPM:-true}"
 
 if [ "${INSTALL_MODE}" != "rpm" ]; then
   echo "[zebra-install] only INSTALL_MODE=rpm is implemented"
@@ -51,12 +52,24 @@ if [ -z "${CORE_RPM}" ]; then
 fi
 
 echo "[zebra-install] installing CoreScanner from ${CORE_RPM}"
-dnf -y install "${CORE_RPM}"
+if ! dnf -y install "${CORE_RPM}"; then
+  if [ "${ALLOW_LEGACY_RPM}" = "true" ]; then
+    echo "[zebra-install] dnf install failed; retrying with legacy rpm flags (--nodigest --nosignature)"
+    rpm -Uvh --nodigest --nosignature "${CORE_RPM}"
+  else
+    echo "[zebra-install] dnf install failed and ALLOW_LEGACY_RPM=false"
+    exit 1
+  fi
+fi
 
 if compgen -G "${SDK_LOCAL_DIR}/zebra-scanner-javapos-*.rpm" >/dev/null 2>&1; then
   JAVAPOS_RPM="$(ls -1 ${SDK_LOCAL_DIR}/zebra-scanner-javapos-*.rpm | head -n1)"
   echo "[zebra-install] installing JavaPOS optional package ${JAVAPOS_RPM}"
-  dnf -y install "${JAVAPOS_RPM}" || true
+  if ! dnf -y install "${JAVAPOS_RPM}"; then
+    if [ "${ALLOW_LEGACY_RPM}" = "true" ]; then
+      rpm -Uvh --nodigest --nosignature "${JAVAPOS_RPM}" || true
+    fi
+  fi
 fi
 
 if [ "${ENABLE_CLU}" = "true" ]; then
