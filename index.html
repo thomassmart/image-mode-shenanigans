@@ -616,6 +616,8 @@
     let posEvents = null;
     let posReconnectTimer = null;
     const transactionBarcodePrices = new Map();
+    let keyboardScanBuffer = '';
+    let keyboardScanTimer = null;
 
     // AUD display while keeping formatting consistent (but no currency symbol surprises for demo)
     function moneyAUD(n) {
@@ -660,6 +662,32 @@
         if (barcode.length < 4) return;
         const p = upsertBarcodeProduct(barcode);
         addToCart(p.key, 1);
+    }
+
+    function handleKeyboardScannerKey(e) {
+        const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+        if (e.key === 'Enter' || e.key === 'Tab') {
+            if (keyboardScanBuffer.length >= 4) {
+                handleBarcodeScan(keyboardScanBuffer);
+            }
+            keyboardScanBuffer = '';
+            window.clearTimeout(keyboardScanTimer);
+            return;
+        }
+
+        if (e.key.length === 1) {
+            keyboardScanBuffer += e.key;
+            window.clearTimeout(keyboardScanTimer);
+            keyboardScanTimer = window.setTimeout(() => {
+                // Some scanners don't send Enter/Tab suffix; commit on short idle.
+                if (keyboardScanBuffer.length >= 4) {
+                    handleBarcodeScan(keyboardScanBuffer);
+                }
+                keyboardScanBuffer = '';
+            }, 180);
+        }
     }
 
     async function postReceipt(methodLabel) {
@@ -972,6 +1000,9 @@
         screensaverOverlay.style.display = 'flex';
         screensaverOverlay.setAttribute('aria-hidden', 'false');
         screensaverMessage.style.display = 'none';
+        screensaverVideo.loop = true;
+        screensaverVideo.currentTime = 0;
+        screensaverVideo.load();
         screensaverVideo.play().catch(() => {
             screensaverMessage.style.display = 'block';
         });
@@ -992,8 +1023,13 @@
         screensaverTimer = window.setTimeout(showScreensaver, IDLE_TIMEOUT_MS);
     }
 
-    function handleUserActivity() {
+    function handleUserActivity(e) {
+        const evtType = e && e.type ? e.type : '';
+        const interactive = evtType === 'click' || evtType === 'touchstart' || evtType === 'mousedown' || evtType === 'keydown';
         if (screensaverActive) {
+            if (!interactive) {
+                return;
+            }
             hideScreensaver();
         }
         scheduleScreensaver();
@@ -1056,17 +1092,18 @@
         if (e.target === modalBackdrop) closeModal();
     });
     document.addEventListener('keydown', (e) => {
-        handleUserActivity();
+        handleKeyboardScannerKey(e);
+        handleUserActivity(e);
         if (e.key === 'Escape') closeModal();
     });
     cameraSelect.addEventListener('change', () => startCamera(cameraSelect.value));
 
-    const activityEvents = ['mousemove', 'mousedown', 'touchstart', 'wheel'];
+    const activityEvents = ['mousemove', 'mousedown', 'touchstart', 'wheel', 'click'];
     activityEvents.forEach(eventName => {
         document.addEventListener(eventName, handleUserActivity, { passive: true });
     });
     screensaverOverlay.addEventListener('click', handleUserActivity);
-    screensaverOverlay.addEventListener('mousemove', handleUserActivity);
+    screensaverOverlay.addEventListener('touchstart', handleUserActivity, { passive: true });
     screensaverVideo.addEventListener('ended', () => {
         // Defensive replay path for devices/browsers that ignore `loop` intermittently.
         screensaverVideo.currentTime = 0;

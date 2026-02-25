@@ -11,6 +11,8 @@ RUN dnf -y install \
       curl \
       python3 \
       python3-libs \
+      systemd-libs \
+      systemd-udev \
       cups \
       cups-client \
       usbutils \
@@ -55,6 +57,7 @@ RUN chmod +x /usr/local/bin/kiosk-chromium.sh \
     && chmod +x /usr/local/bin/kiosk-install-zebra.sh \
     && chmod +x /usr/local/bin/kiosk-pos-agent.py \
     && chmod +x /usr/local/bin/gnome-kiosk-script \
+    && if [ ! -e /usr/lib64/libudev.so.0 ] && [ -e /usr/lib64/libudev.so.1 ]; then ln -s /usr/lib64/libudev.so.1 /usr/lib64/libudev.so.0; fi \
     && BUILD_TIME=1 /usr/local/bin/kiosk-install-zebra.sh \
     && (systemctl enable cscored.service || systemctl enable cscore.service || systemctl enable corescanner.service || true) \
     && systemctl enable kiosk-pos-agent.service \
