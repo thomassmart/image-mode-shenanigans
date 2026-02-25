@@ -613,6 +613,7 @@
     let activeCameraStream = null;
     let screensaverTimer = null;
     let screensaverActive = false;
+    let screensaverKeepaliveTimer = null;
     let posEvents = null;
     let posReconnectTimer = null;
     const transactionBarcodePrices = new Map();
@@ -1006,6 +1007,18 @@
         screensaverVideo.play().catch(() => {
             screensaverMessage.style.display = 'block';
         });
+        window.clearInterval(screensaverKeepaliveTimer);
+        screensaverKeepaliveTimer = window.setInterval(() => {
+            if (!screensaverActive) return;
+            if (screensaverVideo.ended) {
+                screensaverVideo.currentTime = 0;
+            }
+            if (screensaverVideo.paused) {
+                screensaverVideo.play().catch(() => {
+                    screensaverMessage.style.display = 'block';
+                });
+            }
+        }, 1000);
     }
 
     function hideScreensaver() {
@@ -1015,6 +1028,8 @@
         screensaverOverlay.setAttribute('aria-hidden', 'true');
         screensaverVideo.pause();
         screensaverVideo.currentTime = 0;
+        window.clearInterval(screensaverKeepaliveTimer);
+        screensaverKeepaliveTimer = null;
         screensaverMessage.style.display = 'none';
     }
 
