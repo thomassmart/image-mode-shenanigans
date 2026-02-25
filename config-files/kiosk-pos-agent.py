@@ -7,6 +7,7 @@ import os
 import queue
 import re
 import shlex
+import shutil
 import subprocess
 import threading
 import time
@@ -40,6 +41,13 @@ def cfg_getbool(cfg, section, key, fallback=False):
     if not cfg.has_section(section):
         return fallback
     return cfg.getboolean(section, key, fallback=fallback)
+
+
+def first_existing_path(candidates):
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            return candidate
+    return ""
 
 
 class ScannerBroker:
@@ -113,11 +121,29 @@ class ScannerWorker(threading.Thread):
         return ""
 
     def _run_corescanner_stream(self):
-        cmd = cfg_get(self.cfg, "scanner", "corescanner_command", "/usr/bin/csclu").strip()
+        cmd = cfg_get(self.cfg, "scanner", "corescanner_command", "").strip()
+        if cmd and not os.path.exists(cmd):
+            print(f"[scanner] configured CoreScanner command missing: {cmd}", flush=True)
+            cmd = ""
+
+        if not cmd:
+            path_hit = shutil.which("csclu")
+            if path_hit:
+                cmd = path_hit
+
+        if not cmd:
+            candidates = cfg_get(
+                self.cfg,
+                "scanner",
+                "corescanner_command_candidates",
+                "/usr/bin/csclu /usr/local/bin/csclu /opt/zebra/scanner/bin/csclu",
+            )
+            cmd = first_existing_path(shlex.split(candidates))
+
         args = shlex.split(cfg_get(self.cfg, "scanner", "corescanner_args", "--wait --xml-events"))
 
-        if not cmd or not os.path.exists(cmd):
-            print(f"[scanner] CoreScanner command missing: {cmd}", flush=True)
+        if not cmd:
+            print("[scanner] CoreScanner command missing: tried configured path, PATH lookup, and candidates", flush=True)
             return False
 
         try:
@@ -307,6 +333,8 @@ def render_receipt_bytes(payload, cfg):
 
     linefeed_hex = cfg_get(cfg, "printer", "linefeed_hex", defaults.get("linefeed_hex", ""))
     linefeed = bytes.fromhex(linefeed_hex) if linefeed_hex else b"\n"
+    top_feed_lines = int(cfg_get(cfg, "printer", "top_feed_lines", "4"))
+    bottom_feed_lines = int(cfg_get(cfg, "printer", "bottom_feed_lines", "8"))
 
     lines = []
     lines.append("SELF CHECKOUT RECEIPT")
@@ -336,7 +364,9 @@ def render_receipt_bytes(payload, cfg):
     cut_hex = cfg_get(cfg, "printer", "cut_hex", defaults.get("cut_hex", ""))
     init_bytes = bytes.fromhex(init_hex) if init_hex else b""
     cut_bytes = bytes.fromhex(cut_hex) if cut_hex else b""
-    return init_bytes + body + linefeed + linefeed + cut_bytes
+    top_pad = linefeed * max(0, top_feed_lines)
+    bottom_pad = linefeed * max(0, bottom_feed_lines)
+    return init_bytes + top_pad + body + bottom_pad + cut_bytes
 
 
 def write_receipt(payload, cfg):

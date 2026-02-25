@@ -56,7 +56,7 @@ RUN chmod +x /usr/local/bin/kiosk-chromium.sh \
     && chmod +x /usr/local/bin/kiosk-pos-agent.py \
     && chmod +x /usr/local/bin/gnome-kiosk-script \
     && BUILD_TIME=1 /usr/local/bin/kiosk-install-zebra.sh \
-    && (systemctl enable cscore.service || systemctl enable corescanner.service || true) \
+    && (systemctl enable cscored.service || systemctl enable cscore.service || systemctl enable corescanner.service || true) \
     && systemctl enable kiosk-pos-agent.service \
     && if command -v dconf >/dev/null 2>&1; then dconf update; fi
 

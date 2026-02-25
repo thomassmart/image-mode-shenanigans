@@ -62,6 +62,16 @@ if ! dnf -y install "${CORE_RPM}"; then
   fi
 fi
 
+if compgen -G "${SDK_LOCAL_DIR}/zebra-scanner-devel-*.rpm" >/dev/null 2>&1; then
+  DEVEL_RPM="$(ls -1 ${SDK_LOCAL_DIR}/zebra-scanner-devel-*.rpm | head -n1)"
+  echo "[zebra-install] installing devel/CLI package ${DEVEL_RPM}"
+  if ! dnf -y install "${DEVEL_RPM}"; then
+    if [ "${ALLOW_LEGACY_RPM}" = "true" ]; then
+      rpm -Uvh --nodigest --nosignature "${DEVEL_RPM}" || true
+    fi
+  fi
+fi
+
 if compgen -G "${SDK_LOCAL_DIR}/zebra-scanner-javapos-*.rpm" >/dev/null 2>&1; then
   JAVAPOS_RPM="$(ls -1 ${SDK_LOCAL_DIR}/zebra-scanner-javapos-*.rpm | head -n1)"
   echo "[zebra-install] installing JavaPOS optional package ${JAVAPOS_RPM}"
@@ -77,7 +87,7 @@ if [ "${ENABLE_CLU}" = "true" ]; then
 fi
 
 if [ "${BUILD_TIME}" != "1" ]; then
-  for unit in cscore.service corescanner.service; do
+  for unit in cscored.service cscore.service corescanner.service; do
     if systemctl list-unit-files | grep -q "^${unit}"; then
       echo "[zebra-install] enabling ${unit}"
       systemctl enable --now "${unit}" || true
