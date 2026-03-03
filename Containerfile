@@ -3,13 +3,13 @@ FROM quay.io/fedora/fedora-bootc:latest
 
 # Install kiosk runtime packages (Fedora 43+ friendly, no group dependency)
 RUN dnf -y install \
+      dnf-plugins-core \
       gdm \
       gnome-kiosk \
       gnome-kiosk-script-session \
       podman \
       chromium \
       curl \
-      flightctl-agent \
       python3 \
       python3-libs \
       systemd-libs \
@@ -17,6 +17,8 @@ RUN dnf -y install \
       cups \
       cups-client \
       usbutils \
+    && dnf config-manager addrepo --from-repofile=https://rpm.flightctl.io/flightctl-epel.repo \
+    && dnf -y install flightctl-agent \
     && dnf clean all \
     && systemctl enable gdm \
     && systemctl set-default graphical.target
