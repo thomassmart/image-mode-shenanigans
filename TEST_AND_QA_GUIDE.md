@@ -15,6 +15,7 @@ In scope:
 - OS image build (`Containerfile`, `bootc/config.toml`).
 - CI pipeline (`.github/workflows/image-build.yml`).
 - Kiosk runtime services (`gdm`, `kiosk-nginx`, `kiosk-pos-agent`).
+- Flight management runtime service (`flightctl-agent`).
 - Frontend behavior (`index.html`, `screensaver.mp4`).
 - Scanner and receipt printing integration (CoreScanner/raw and CUPS/raw USB backends).
 
@@ -64,6 +65,7 @@ test -f Containerfile
 test -f .github/workflows/image-build.yml
 test -f index.html
 test -f config-files/kiosk-pos-agent.py
+test -f config-files/flightctl/config.yaml
 rg -n "__BUILD_VERSION__" index.html
 ```
 
@@ -92,6 +94,7 @@ python3 -m py_compile config-files/kiosk-pos-agent.py
 ```bash
 rg -n "ExecStart|WantedBy|After|Wants" config-files/kiosk-pos-agent.service
 rg -n "^\[Container\]|^Image=|^Network=|^Volume=" config-files/kiosk-nginx.container
+rg -n "ExecStart=.*--config /etc/flightctl/config.yaml" config-files/flightctl/10-config-path.conf
 ```
 
 ### 7.4 Workflow sanity
@@ -158,8 +161,10 @@ On-host checks:
 systemctl status gdm
 systemctl status kiosk-nginx.service
 systemctl status kiosk-pos-agent.service
+systemctl status flightctl-agent.service
 curl -I http://127.0.0.1/
 curl -s http://127.0.0.1:8091/healthz
+journalctl -u flightctl-agent -b --no-pager | tail -n 100
 ```
 
 Expected:

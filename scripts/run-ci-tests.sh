@@ -8,9 +8,15 @@ test -f Containerfile
 test -f .github/workflows/image-build.yml
 test -f index.html
 test -f config-files/kiosk-pos-agent.py
+test -f config-files/flightctl/config.yaml
 
 echo "[qa] validating build label placeholder"
 rg -q "__BUILD_VERSION__" index.html
+
+echo "[qa] validating flightctl integration wiring"
+rg -q "flightctl-agent" Containerfile
+rg -q "COPY config-files/flightctl/config.yaml /etc/flightctl/config.yaml" Containerfile
+rg -q "systemctl enable flightctl-agent.service" Containerfile
 
 echo "[qa] shell syntax checks"
 bash -n config-files/kiosk-chromium.sh

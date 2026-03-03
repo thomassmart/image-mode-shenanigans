@@ -11,6 +11,7 @@ This project turns a single repo into a reproducible kiosk platform:
 - Produces an installable ISO via `bootc-image-builder`.
 - Boots into GNOME Kiosk, autologs user `kiosk`, and opens Chromium in kiosk mode.
 - Injects a `break-glass` admin user at ISO build time from GitHub Actions secrets.
+- Includes `flightctl-agent`, configured from repo-managed `config-files/flightctl/config.yaml`.
 
 ## System Overview
 
@@ -47,6 +48,8 @@ flowchart LR
 - `config-files/kiosk-zebra.conf`: Zebra installer settings copied to `/etc/kiosk-zebra.conf`.
 - `config-files/kiosk-install-zebra.sh`: Local RPM installer script used at image build time for CoreScanner.
 - `config-files/kiosk-pos-agent.service`: Boot service that exposes scan events and print endpoint.
+- `config-files/flightctl/config.yaml`: Authoritative `flightctl-agent` config copied to `/etc/flightctl/config.yaml`.
+- `config-files/flightctl/10-config-path.conf`: Systemd drop-in that forces `flightctl-agent` to use `/etc/flightctl/config.yaml`.
 - `Zebra/`: Local Zebra RPM payload staged into the image at `/usr/local/share/zebra`.
 - `index.html`: Kiosk web UI/content.
 - `screensaver.mp4`: Idle screensaver video shown after inactivity.
@@ -128,6 +131,20 @@ groups = ["wheel"]
 5. Builds ISO with `--config /config.toml`.
 6. Uploads ISO artifacts.
 
+## Flightctl Configuration
+
+`flightctl-agent` is installed in the base image and enabled at boot.
+
+Source of truth:
+- `config-files/flightctl/config.yaml`
+
+Image paths:
+- `/etc/flightctl/config.yaml`
+- `/etc/systemd/system/flightctl-agent.service.d/10-config-path.conf`
+
+Security note:
+- This repository intentionally stores `flightctl` enrollment/certificate material in git. Treat repository access as sensitive and rotate credentials on exposure.
+
 ## Troubleshooting
 
 - Zebra/CoreScanner install verification:
@@ -140,6 +157,12 @@ systemctl status cscore.service || systemctl status corescanner.service
 ```bash
 sudo systemctl status kiosk-pos-agent.service
 curl -I http://127.0.0.1:8091/healthz
+```
+
+- flightctl agent status:
+```bash
+sudo systemctl status flightctl-agent.service
+journalctl -u flightctl-agent -b --no-pager | tail -n 100
 ```
 
 - POS config edit points:

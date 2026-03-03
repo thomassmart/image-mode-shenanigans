@@ -9,6 +9,7 @@ RUN dnf -y install \
       podman \
       chromium \
       curl \
+      flightctl-agent \
       python3 \
       python3-libs \
       systemd-libs \
@@ -24,32 +25,24 @@ RUN dnf -y install \
 RUN useradd -m -d /var/home/kiosk -s /bin/bash kiosk
 
 # Copy website, quadlet config, and embedded bootc-image-builder defaults
-RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder /etc/gdm /usr/local/bin /etc/tmpfiles.d /etc/dconf/profile /etc/dconf/db/local.d/locks /etc/xdg/autostart /var/lib/AccountsService/users /etc/systemd/system /etc/kiosk-pos.conf.d /var/lib/kiosk-pos /usr/local/share/zebra
+RUN mkdir -p /usr/share/kiosk-site /etc/containers/systemd /usr/lib/bootc-image-builder /etc/gdm /usr/local/bin /etc/tmpfiles.d /etc/dconf/profile /etc/dconf/db/local.d/locks /etc/xdg/autostart /var/lib/AccountsService/users /etc/systemd/system /etc/systemd/system/flightctl-agent.service.d /etc/flightctl /etc/kiosk-pos.conf.d /var/lib/kiosk-pos /usr/local/share/zebra
 COPY bootc/config.toml /usr/lib/bootc-image-builder/config.toml
 COPY config-files/kiosk-nginx.container /etc/containers/systemd/kiosk-nginx.container
 COPY config-files/environment /etc/environment
+COPY config-files/flightctl/config.yaml /etc/flightctl/config.yaml
+COPY config-files/flightctl/10-config-path.conf /etc/systemd/system/flightctl-agent.service.d/10-config-path.conf
 COPY config-files/gdm-custom.conf /etc/gdm/custom.conf
 COPY config-files/accountsservice-kiosk /var/lib/AccountsService/users/kiosk
-COPY config-files/kiosk-home.conf /etc/tmpfiles.d/kiosk-home.conf
-COPY config-files/kiosk-script-home-link.conf /etc/tmpfiles.d/kiosk-script-home-link.conf
+COPY config-files/kiosk-home.conf config-files/kiosk-script-home-link.conf /etc/tmpfiles.d/
 COPY config-files/dconf-profile-user /etc/dconf/profile/user
 COPY config-files/dconf-00-kiosk /etc/dconf/db/local.d/00-kiosk
 COPY config-files/dconf-locks-kiosk /etc/dconf/db/local.d/locks/kiosk
-COPY config-files/gnome-initial-setup-first-login.desktop /etc/xdg/autostart/gnome-initial-setup-first-login.desktop
-COPY config-files/org.gnome.Tour.desktop /etc/xdg/autostart/org.gnome.Tour.desktop
-COPY config-files/gnome-keyring-pkcs11.desktop /etc/xdg/autostart/gnome-keyring-pkcs11.desktop
-COPY config-files/gnome-keyring-secrets.desktop /etc/xdg/autostart/gnome-keyring-secrets.desktop
-COPY config-files/gnome-keyring-ssh.desktop /etc/xdg/autostart/gnome-keyring-ssh.desktop
-COPY config-files/gnome-keyring-gpg.desktop /etc/xdg/autostart/gnome-keyring-gpg.desktop
+COPY config-files/*.desktop /etc/xdg/autostart/
 
 # Copy kiosk session startup files
-COPY config-files/kiosk-chromium.sh /usr/local/bin/kiosk-chromium.sh
-COPY config-files/gnome-kiosk-script /usr/local/bin/gnome-kiosk-script
-COPY config-files/kiosk-install-zebra.sh /usr/local/bin/kiosk-install-zebra.sh
-COPY config-files/kiosk-pos-agent.py /usr/local/bin/kiosk-pos-agent.py
+COPY config-files/kiosk-chromium.sh config-files/gnome-kiosk-script config-files/kiosk-install-zebra.sh config-files/kiosk-pos-agent.py /usr/local/bin/
 COPY config-files/kiosk-pos-agent.service /etc/systemd/system/kiosk-pos-agent.service
-COPY config-files/kiosk-zebra.conf /etc/kiosk-zebra.conf
-COPY config-files/kiosk-pos.conf /etc/kiosk-pos.conf
+COPY config-files/kiosk-zebra.conf config-files/kiosk-pos.conf /etc/
 COPY Zebra/ /usr/local/share/zebra/
 
 # Set proper permissions
@@ -57,10 +50,12 @@ RUN chmod +x /usr/local/bin/kiosk-chromium.sh \
     && chmod +x /usr/local/bin/kiosk-install-zebra.sh \
     && chmod +x /usr/local/bin/kiosk-pos-agent.py \
     && chmod +x /usr/local/bin/gnome-kiosk-script \
+    && chmod 600 /etc/flightctl/config.yaml \
     && if [ ! -e /usr/lib64/libudev.so.0 ] && [ -e /usr/lib64/libudev.so.1 ]; then ln -s /usr/lib64/libudev.so.1 /usr/lib64/libudev.so.0; fi \
     && BUILD_TIME=1 /usr/local/bin/kiosk-install-zebra.sh \
     && (systemctl enable cscored.service || systemctl enable cscore.service || systemctl enable corescanner.service || true) \
     && systemctl enable kiosk-pos-agent.service \
+    && systemctl enable flightctl-agent.service \
     && if command -v dconf >/dev/null 2>&1; then dconf update; fi
 
 # Copy Index.html
